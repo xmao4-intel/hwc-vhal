@@ -208,6 +208,23 @@ int RemoteDisplay::displayBuffer(buffer_handle_t buffer) {
   return 0;
 }
 
+int RemoteDisplay::setRotation(int rotation) {
+  ALOGV("RemoteDisplay(%d)::%s", mSocketFd, __func__);
+
+  rotation_event_t ev;
+
+  memset(&ev, 0, sizeof(ev));
+  ev.event.type = DD_EVENT_SET_ROTATION;
+  ev.event.size = sizeof(ev);
+  ev.rotation = rotation;
+
+  if (_send(&ev, sizeof(ev)) < 0) {
+    ALOGE("RemoteDisplay(%d) failed to send display rotation request", mSocketFd);
+    return -1;
+  }
+  return 0;
+}
+
 int RemoteDisplay::createLayer(uint64_t id) {
   ALOGV("RemoteDisplay(%d)::%s", mSocketFd, __func__);
 

@@ -33,6 +33,7 @@
 #define DD_EVENT_SERVER_IP_REQ 0x1006
 #define DD_EVENT_SERVER_IP_ACK 0x1007
 #define DD_EVENT_SERVER_IP_SET 0x1008
+#define DD_EVENT_SET_ROTATION 0x1009
 
 #define DD_EVENT_CREATE_LAYER 0x1100
 #define DD_EVENT_REMOVE_LAYER 0x1101
@@ -88,6 +89,11 @@ typedef struct _buffer_info_event_t {
   display_event_t event;
   buffer_info_t info;
 } buffer_info_event_t;
+
+typedef struct _rotation_event_t {
+  display_event_t event;
+  int rotation;
+} rotation_event_t;
 
 typedef struct _create_layer_event_t {
   display_event_t event;

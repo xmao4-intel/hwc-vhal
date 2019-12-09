@@ -81,6 +81,7 @@ class Hwc2Display : public DisplayEventListener {
   HWC2::Error hotplug(bool in);
   HWC2::Error vsync(int64_t timestamp);
   HWC2::Error refresh();
+  int updateRotation();
 
  protected:
   const char* mName = "PrimaryDisplay";
@@ -95,6 +96,7 @@ class Hwc2Display : public DisplayEventListener {
   int32_t mFramerate = 60;
   int32_t mXDpi = 240;
   int32_t mYDpi = 240;
+  uint32_t mTransform = 0;
 
   buffer_handle_t mFbTarget = nullptr;
   int mFbAcquireFenceFd = -1;

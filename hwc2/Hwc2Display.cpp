@@ -83,6 +83,7 @@ int Hwc2Display::attach(RemoteDisplay* rd) {
 int Hwc2Display::detach(RemoteDisplay* rd) {
   if (rd == mRemoteDisplay) {
     mFbtBuffers.clear();
+    mTransform = 0;
     mRemoteDisplay = nullptr;
   }
   return 0;
@@ -330,8 +331,9 @@ Error Hwc2Display::present(int32_t* retireFence) {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
 
   // dump();
-
   if (mRemoteDisplay) {
+    updateRotation();
+
     if (mMode == 0 || mMode == 2) {
       if (mFbTarget) {
         mRemoteDisplay->displayBuffer(mFbTarget);
@@ -465,6 +467,30 @@ Error Hwc2Display::validate(uint32_t* numTypes, uint32_t* numRequests) {
 
   // dump();
   return *numTypes > 0 ? Error::HasChanges : Error::None;
+}
+
+int Hwc2Display::updateRotation() {
+  ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
+
+  if (!mRemoteDisplay)
+    return 0;
+
+  uint32_t tr = 0;
+  for (auto& layer : mLayers) {
+    tr = layer.second.info().transform;
+    if (tr)
+      break;
+  }
+  if (tr != mTransform) {
+    int rot = (tr == 0) ? 0 : (tr == 4) ? 1 : (tr == 3) ? 2 : 3;
+
+  ALOGD("Hwc2Display(%" PRIu64 ")::%s, setRotation to %d, tr=%d", mDisplayID, __func__, rot, tr);
+
+    mRemoteDisplay->setRotation(rot);
+    mTransform = tr;
+  }
+
+  return 0;
 }
 
 void Hwc2Display::dump() {

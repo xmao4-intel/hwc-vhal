@@ -37,6 +37,7 @@ class RemoteDisplay {
   int createBuffer(buffer_handle_t buffer);
   int removeBuffer(buffer_handle_t buffer);
   int displayBuffer(buffer_handle_t buffer);
+  int setRotation(int rotation);
   int createLayer(uint64_t id);
   int removeLayer(uint64_t id);
   int updateLayers(std::vector<layer_info_t>& layerInfo);
