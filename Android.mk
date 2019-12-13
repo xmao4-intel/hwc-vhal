@@ -23,6 +23,10 @@ include $(CLEAR_VARS)
 
 #TARGET_USES_HWC2 := false
 
+# HWC VNC is only used for internal test, please don't enable it for external release
+#ENABLE_HWC_VNC := true
+#ENABLE_HWC_VNC_TEST := true
+
 LOCAL_CFLAGS := -g -DLOG_TAG=\"hwc_vhal\" -g -Wno-missing-field-initializers -Wno-unused-parameter
 LOCAL_CPPFLAGS := -g -std=c++11 -Wall -Werror -Wno-unused-parameter
 LOCAL_LDFLAGS :=  -g
@@ -66,6 +70,23 @@ LOCAL_SRC_FILES := \
 
 endif
 
+ifeq ($(ENABLE_HWC_VNC), true)
+LOCAL_SRC_FILES += \
+        vnc/VncDisplay.cpp \
+        vnc/DirectInput.cpp \
+        vnc/Keymap.cpp \
+
+LOCAL_CPPFLAGS += \
+        -DENABLE_HWC_VNC=1
+
+LOCAL_C_INCLUDES += \
+        external/libvncserver \
+        external/zlib \
+        $(LOCAL_PATH)/vnc \
+
+LOCAL_STATIC_LIBRARIES := libvncserver libz libpng libjpeg libssl libcrypto
+endif
+
 LOCAL_C_INCLUDES += \
         $(LOCAL_PATH) \
         $(LOCAL_PATH)/common \
@@ -80,5 +101,40 @@ LOCAL_MODULE := hwcomposer.remote
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_RELATIVE_PATH := hw
 include $(BUILD_SHARED_LIBRARY)
+
+ifeq ($(ENABLE_HWC_VNC_TEST), true)
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+        vnc/VncDisplay.cpp \
+        vnc/DirectInput.cpp \
+        vnc/Keymap.cpp \
+        vnc/VncDisplayTest.cpp \
+
+LOCAL_CPPFLAGS += \
+        -DENABLE_HWC_VNC=1
+
+LOCAL_C_INCLUDES += \
+        external/libvncserver \
+        external/zlib \
+        $(LOCAL_PATH)/vnc \
+
+LOCAL_SHARED_LIBRARIES := \
+        liblog \
+        libcutils \
+        libhardware \
+
+LOCAL_STATIC_LIBRARIES := \
+        libvncserver \
+        libz \
+        libpng \
+        libjpeg \
+        libssl \
+        libcrypto\
+
+LOCAL_MODULE:= vncdisplay-test
+
+include $(BUILD_EXECUTABLE)
+endif
 
 endif

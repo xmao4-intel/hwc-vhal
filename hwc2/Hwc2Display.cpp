@@ -40,6 +40,17 @@ Hwc2Display::Hwc2Display(hwc2_display_t id) {
     mWidth = w;
     mHeight = h;
   }
+
+#ifdef ENABLE_HWC_VNC
+  // if (property_get("sys.display.vnc", value, nullptr) && (atoi(value) > 0)) {
+  int port = 9000 + (int)id;
+  mVncDisplay = new VncDisplay(port, mWidth, mHeight);
+  if (mVncDisplay && mVncDisplay->init() < 0) {
+    delete mVncDisplay;
+    mVncDisplay = nullptr;
+  }
+  // }
+#endif
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -365,6 +376,13 @@ Error Hwc2Display::present(int32_t* retireFence) {
       }
     }
   }
+
+#ifdef ENABLE_HWC_VNC
+  if (mVncDisplay && mFbTarget) {
+    mVncDisplay->postFb(mFbTarget);
+  }
+#endif
+
   *retireFence = -1;
   return Error::None;
 }
@@ -484,7 +502,8 @@ int Hwc2Display::updateRotation() {
   if (tr != mTransform) {
     int rot = (tr == 0) ? 0 : (tr == 4) ? 1 : (tr == 3) ? 2 : 3;
 
-  ALOGD("Hwc2Display(%" PRIu64 ")::%s, setRotation to %d, tr=%d", mDisplayID, __func__, rot, tr);
+    ALOGD("Hwc2Display(%" PRIu64 ")::%s, setRotation to %d, tr=%d", mDisplayID,
+          __func__, rot, tr);
 
     mRemoteDisplay->setRotation(rot);
     mTransform = tr;

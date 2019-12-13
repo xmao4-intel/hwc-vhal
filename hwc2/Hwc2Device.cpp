@@ -42,6 +42,10 @@ Error Hwc2Device::init() {
     onHotplug(kPrimayDisplay, true);
   }
 
+#ifdef ENABLE_HWC_VNC
+  VncDisplay::addVncDisplayObserver(this);
+#endif
+
   return Error::None;
 }
 
@@ -142,7 +146,7 @@ Error Hwc2Device::onHotplug(hwc2_display_t disp, bool connected) {
   return Error::None;
 }
 
-Error Hwc2Device::onRefresh(hwc2_display_t disp){
+Error Hwc2Device::onRefresh(hwc2_display_t disp) {
   if (mCallbacks.count(HWC2_CALLBACK_REFRESH) == 0) {
     return Error::None;
   }

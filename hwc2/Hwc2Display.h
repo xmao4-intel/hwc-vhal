@@ -11,6 +11,10 @@
 #include "IRemoteDevice.h"
 #include "display_protocol.h"
 
+#ifdef ENABLE_HWC_VNC
+#include "VncDisplay.h"
+#endif
+
 class RemoteDisplay;
 
 class Hwc2Display : public DisplayEventListener {
@@ -112,6 +116,10 @@ class Hwc2Display : public DisplayEventListener {
   uint32_t mVersion = 0;
   uint32_t mMode = 0;
   int mReleaseFence = -1;
+
+#ifdef ENABLE_HWC_VNC
+  VncDisplay* mVncDisplay = nullptr;
+#endif
 };
 
 #endif  // __HWC2_DISPLAY_H__

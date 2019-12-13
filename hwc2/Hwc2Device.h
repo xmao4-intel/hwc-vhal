@@ -11,7 +11,17 @@
 #include "IRemoteDevice.h"
 #include "RemoteDisplayMgr.h"
 
+#ifdef ENABLE_HWC_VNC
+#include "VncDisplay.h"
+#endif
+
+#ifdef ENABLE_HWC_VNC
+class Hwc2Device : public hwc2_device_t,
+                   public IRemoteDevice,
+                   public VncDisplayObserver {
+#else
 class Hwc2Device : public hwc2_device_t, public IRemoteDevice {
+#endif
  public:
   Hwc2Device();
   virtual ~Hwc2Device() {}
@@ -102,6 +112,14 @@ class Hwc2Device : public hwc2_device_t, public IRemoteDevice {
   HWC2::Error registerCallback(int32_t descriptor,
                                hwc2_callback_data_t data,
                                hwc2_function_pointer_t function);
+
+#ifdef ENABLE_HWC_VNC
+  int onHookClient(rfbClientPtr client) override {
+    onRefresh(kPrimayDisplay);
+    return 0;
+  }
+  int onUnhookClient(rfbClientPtr client) override { return 0; }
+#endif
 
  private:
   static std::atomic<hwc2_display_t> sNextId;
