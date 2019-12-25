@@ -72,6 +72,7 @@ endif
 
 ifeq ($(ENABLE_HWC_VNC), true)
 LOCAL_SRC_FILES += \
+        common/BufferMapper.cpp \
         vnc/VncDisplay.cpp \
         vnc/DirectInput.cpp \
         vnc/Keymap.cpp \
@@ -106,6 +107,7 @@ ifeq ($(ENABLE_HWC_VNC_TEST), true)
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := \
+        common/BufferMapper.cpp \
         vnc/VncDisplay.cpp \
         vnc/DirectInput.cpp \
         vnc/Keymap.cpp \
@@ -117,6 +119,7 @@ LOCAL_CPPFLAGS += \
 LOCAL_C_INCLUDES += \
         external/libvncserver \
         external/zlib \
+        $(LOCAL_PATH)/common \
         $(LOCAL_PATH)/vnc \
 
 LOCAL_SHARED_LIBRARIES := \

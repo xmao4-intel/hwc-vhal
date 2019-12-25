@@ -2,6 +2,7 @@
 
 #include <utils/Log.h>
 
+#include "BufferMapper.h"
 #include "DirectInput.h"
 #include "Keymap.h"
 #include "VncDisplay.h"
@@ -16,9 +17,6 @@ VncDisplay::VncDisplay(int port, int w, int h)
 
 VncDisplay::~VncDisplay() {
   ALOGV("%s", __func__);
-  if (mGralloc) {
-    gralloc1_close(mGralloc);
-  }
 }
 
 int VncDisplay::addVncDisplayObserver(VncDisplayObserver* observer) {
@@ -119,16 +117,12 @@ void VncDisplay::handleKeyboard(ClientContext* ctx,
 
   if (mInputReceiver && down) {
     mInputReceiver->onKeyCode(keySymToScanCode(key), keySymToMask(key));
-    //ALOGD("keyboard event:down=%d key=%d\n", down, key);
+    // ALOGD("keyboard event:down=%d key=%d\n", down, key);
   }
 }
 
 int VncDisplay::init() {
   ALOGV("%s", __func__);
-
-  if (getGrallocDevice() < 0) {
-    return -1;
-  }
 
   mInputReceiver = new DirectInputReceiver(0);
 
@@ -164,76 +158,6 @@ int VncDisplay::init() {
   return 0;
 }
 
-int VncDisplay::getGrallocDevice() {
-  ALOGV("%s", __func__);
-
-  const hw_module_t* mod = nullptr;
-
-  if (hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &mod) != 0) {
-    ALOGE("Failed to load gralloc module");
-    return -1;
-  }
-
-  if (gralloc1_open(mod, &mGralloc) != 0) {
-    ALOGE("Failed to open gralloc1 device");
-    return -1;
-  }
-
-  if (mGralloc) {
-    pfnLock = (GRALLOC1_PFN_LOCK)(
-        mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_LOCK));
-    pfnUnlock = (GRALLOC1_PFN_UNLOCK)(
-        mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_UNLOCK));
-    pfnGetDimensions = (GRALLOC1_PFN_GET_DIMENSIONS)(
-        mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_UNLOCK));
-    pfnGetFormat = (GRALLOC1_PFN_GET_FORMAT)(
-        mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_GET_FORMAT));
-    pfnGetStride = (GRALLOC1_PFN_GET_STRIDE)(
-        mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_GET_STRIDE));
-  }
-  return 0;
-}
-
-int VncDisplay::lockBuffer(buffer_handle_t b, uint8_t** data, uint32_t* s) {
-  ALOGV("%s", __func__);
-
-  if (!b || !pfnLock || !pfnGetStride) {
-    return -1;
-  }
-
-  gralloc1_rect_t rect = {0, 0, (int32_t)mWidth, (int32_t)mHeight};
-  int fenceFd = -1;
-  if (pfnLock(mGralloc, b, 0x0, 0x3, &rect, (void**)data, fenceFd) != 0) {
-    ALOGE("Failed to lock buffer %p", b);
-    return -1;
-  }
-  if (pfnGetStride(mGralloc, b, s) != 0) {
-    ALOGE("Failed to get buffer %p stride", b);
-    return -1;
-  }
-  // ALOGD("lock buffer return addr %p stride=%d", *data, *s);
-  return 0;
-}
-
-int VncDisplay::unlockBuffer(buffer_handle_t b) {
-  ALOGV("%s", __func__);
-
-  if (!b || !pfnUnlock) {
-    return -1;
-  }
-
-  int releaseFenceFd = -1;
-
-  if (pfnUnlock(mGralloc, b, &releaseFenceFd) != 0) {
-    ALOGE("Failed to unlock buffer %p", b);
-    return -1;
-  }
-  if (releaseFenceFd >= 0) {
-    close(releaseFenceFd);
-  }
-  return 0;
-}
-
 int VncDisplay::postFb(buffer_handle_t fb) {
   ALOGV("%s", __func__);
 
@@ -241,7 +165,8 @@ int VncDisplay::postFb(buffer_handle_t fb) {
   uint32_t stride = 0;
 
   if (sClientCount > 0) {
-    lockBuffer(fb, &rgb, &stride);
+    auto& mapper = BufferMapper::getMapper();
+    mapper.lockBuffer(fb, rgb, stride);
     if (rgb) {
       for (uint32_t i = 0; i < mHeight; i++) {
         memcpy(mFramebuffer + i * mWidth * 4, rgb + i * stride * 4, mWidth * 4);
@@ -249,8 +174,7 @@ int VncDisplay::postFb(buffer_handle_t fb) {
     } else {
       ALOGE("Failed to lock front buffer\n");
     }
-    unlockBuffer(fb);
-
+    mapper.unlockBuffer(fb);
     rfbMarkRectAsModified(mScreen, 0, 0, mWidth, mHeight);
   }
   return 0;

@@ -50,18 +50,8 @@ class VncDisplay {
   void handleMouse(ClientContext* ctx, int mask, int x, int y);
   void handleKeyboard(ClientContext* ctx, rfbBool down, rfbKeySym key);
 
-  int getGrallocDevice();
-  int lockBuffer(buffer_handle_t b, uint8_t** data, uint32_t* s);
-  int unlockBuffer(buffer_handle_t b);
-
  private:
   rfbScreenInfoPtr mScreen = nullptr;
-  gralloc1_device_t* mGralloc = nullptr;
-  GRALLOC1_PFN_LOCK pfnLock = nullptr;
-  GRALLOC1_PFN_UNLOCK pfnUnlock = nullptr;
-  GRALLOC1_PFN_GET_DIMENSIONS pfnGetDimensions = nullptr;
-  GRALLOC1_PFN_GET_FORMAT pfnGetFormat = nullptr;
-  GRALLOC1_PFN_GET_STRIDE pfnGetStride = nullptr;
 
   int mPort = 9000;
   uint32_t mWidth = 720;
