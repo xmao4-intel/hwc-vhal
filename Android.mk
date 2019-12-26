@@ -26,6 +26,7 @@ include $(CLEAR_VARS)
 # HWC VNC is only used for internal test, please don't enable it for external release
 #ENABLE_HWC_VNC := true
 #ENABLE_HWC_VNC_TEST := true
+#ENABLE_LAYER_DUMP := true
 
 LOCAL_CFLAGS := -g -DLOG_TAG=\"hwc_vhal\" -g -Wno-missing-field-initializers -Wno-unused-parameter
 LOCAL_CPPFLAGS := -g -std=c++11 -Wall -Werror -Wno-unused-parameter
@@ -64,15 +65,26 @@ LOCAL_SRC_FILES := \
         common/RemoteDisplay.cpp \
         common/RemoteDisplayMgr.cpp \
         common/LocalDisplay.cpp \
+        common/BufferMapper.cpp \
         hwc2/Hwc2Device.cpp \
         hwc2/Hwc2Display.cpp \
         hwc2/Hwc2Layer.cpp \
 
 endif
 
+ifeq ($(ENABLE_LAYER_DUMP), true)
+LOCAL_SRC_FILES += \
+        common/BufferDumper.cpp \
+
+LOCAL_CPPFLAGS += \
+        -DENABLE_LAYER_DUMP=1
+
+LOCAL_STATIC_LIBRARIES += libpng libz
+
+endif
+
 ifeq ($(ENABLE_HWC_VNC), true)
 LOCAL_SRC_FILES += \
-        common/BufferMapper.cpp \
         vnc/VncDisplay.cpp \
         vnc/DirectInput.cpp \
         vnc/Keymap.cpp \

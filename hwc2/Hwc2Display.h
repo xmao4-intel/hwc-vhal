@@ -117,6 +117,13 @@ class Hwc2Display : public DisplayEventListener {
   uint32_t mMode = 0;
   int mReleaseFence = -1;
 
+  int mFrameNum = 0;
+
+#ifdef ENABLE_LAYER_DUMP
+  int mFrameToDump = 0;
+  bool mDebugRotationTransition = false;
+#endif
+
 #ifdef ENABLE_HWC_VNC
   VncDisplay* mVncDisplay = nullptr;
 #endif

@@ -10,6 +10,10 @@
 #include "LocalDisplay.h"
 #include "RemoteDisplay.h"
 
+#ifdef ENABLE_LAYER_DUMP
+#include "BufferDumper.h"
+#endif
+
 using namespace HWC2;
 
 //#define DEBUG_LAYER
@@ -341,7 +345,6 @@ Error Hwc2Display::getReleaseFences(uint32_t* numElements,
 Error Hwc2Display::present(int32_t* retireFence) {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
 
-  // dump();
   if (mRemoteDisplay) {
     if (mMode == 0 || mMode == 2) {
       if (mFbTarget) {
@@ -382,6 +385,26 @@ Error Hwc2Display::present(int32_t* retireFence) {
   }
 #endif
 
+#ifdef ENABLE_LAYER_DUMP
+  dump();
+
+  if (mFrameToDump == 0) {
+    char value[PROPERTY_VALUE_MAX];
+    if (property_get("hwc_vhal.frame_to_dump", value, nullptr)) {
+      mFrameToDump = atoi(value);
+      property_set("hwc_vhal.frame_to_dump", "0");
+    }
+  }
+  if (mFrameToDump > 0) {
+    auto& dumper = BufferDumper::getBufferDumper();
+
+    ALOGD("Dump fb=%p for %d", mFbTarget, mFrameNum);
+    dumper.dumpBuffer(mFbTarget, mFrameNum);
+    mFrameToDump--;
+  }
+#endif
+
+  mFrameNum++;
   *retireFence = -1;
   return Error::None;
 }
@@ -506,14 +529,20 @@ int Hwc2Display::updateRotation() {
 
     mRemoteDisplay->setRotation(rot);
     mTransform = tr;
+
+#ifdef ENABLE_LAYER_DUMP
+    if (mDebugRotationTransition) {
+      mFrameToDump = 10;
+    }
+#endif
   }
 
   return 0;
 }
 
 void Hwc2Display::dump() {
-  ALOGD("-----Dump of Display(%" PRIu64 "):remote=%p, mode=%d-----", mDisplayID,
-        mRemoteDisplay, mMode);
+  ALOGD("-----Dump of Display(%" PRIu64 "): frame=%d remote=%p, mode=%d-----",
+        mDisplayID, mFrameNum, mRemoteDisplay, mMode);
   for (auto& l : mLayers) {
     l.second.dump();
   }
