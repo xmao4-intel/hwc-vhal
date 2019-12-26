@@ -496,7 +496,7 @@ int Hwc2Display::updateRotation() {
   uint32_t tr = 0;
   for (auto& layer : mLayers) {
     tr = layer.second.info().transform;
-    if (tr)
+    if (tr == mTransform)
       break;
   }
   if (tr != mTransform) {
