@@ -343,11 +343,10 @@ Error Hwc2Display::present(int32_t* retireFence) {
 
   // dump();
   if (mRemoteDisplay) {
-    updateRotation();
-
     if (mMode == 0 || mMode == 2) {
       if (mFbTarget) {
         mRemoteDisplay->displayBuffer(mFbTarget);
+        updateRotation();
       }
     }
     if (mMode > 0) {
