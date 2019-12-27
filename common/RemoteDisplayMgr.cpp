@@ -85,6 +85,7 @@ int RemoteDisplayMgr::connectToRemote() {
   ALOGV("%s", __func__);
 
   struct sockaddr_un addr;
+  std::unique_lock<std::mutex> lck(mConnectionMutex);
 
   mClientFd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (mClientFd < 0) {
@@ -105,14 +106,20 @@ int RemoteDisplayMgr::connectToRemote() {
   if (mClientFd >= 0) {
     addRemoteDisplay(mClientFd);
   }
+
+  // wait the display config ready
+  mClientConnected.wait(lck);
   return 0;
 }
 
 int RemoteDisplayMgr::onConnect(int fd) {
+  std::unique_lock<std::mutex> lck(mConnectionMutex);
+
   if (mRemoteDisplays.find(fd) != mRemoteDisplays.end()) {
     ALOGI("Remote Display %d connected", fd);
     mHwcDevice->addRemoteDisplay(&mRemoteDisplays.at(fd));
   }
+  mClientConnected.notify_all();
   return 0;
 }
 

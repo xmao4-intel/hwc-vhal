@@ -39,9 +39,10 @@ class RemoteDisplayMgr : public DisplayStatusListener {
 
   std::unique_ptr<IRemoteDevice> mHwcDevice;
   int mClientFd = -1;
+  std::mutex mConnectionMutex;
+  std::condition_variable mClientConnected;
 
   std::unique_ptr<std::thread> mSocketThread;
-  // std::mutex mSocketMutex;
   int mServerFd = -1;
   int mMaxConnections = 2;
 
