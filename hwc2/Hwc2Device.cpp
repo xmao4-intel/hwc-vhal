@@ -9,7 +9,7 @@
 #include <sys/un.h>
 
 #include <cutils/properties.h>
-#include <utils/Log.h>
+#include <cutils/log.h>
 
 #include "Hwc2Device.h"
 #include "RemoteDisplayMgr.h"

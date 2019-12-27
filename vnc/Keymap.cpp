@@ -1,8 +1,8 @@
 //#define LOG_NDEBUG 0
+#include <cutils/log.h>
 
 #include <linux/input.h>
 
-#include <utils/Log.h>
 #include "Keymap.h"
 #include "input_interface.h"
 

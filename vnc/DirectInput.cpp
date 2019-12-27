@@ -3,7 +3,7 @@
 #define CLOGV ALOGV
 #define CLOGD ALOGD
 #define CLOGE ALOGE
-#include <utils/Log.h>
+#include <cutils/log.h>
 
 #include "DirectInput.h"
 

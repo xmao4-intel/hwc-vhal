@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include <cutils/properties.h>
-#include <utils/Log.h>
+#include <cutils/log.h>
 
 #include <sys/socket.h>
 
