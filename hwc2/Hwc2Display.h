@@ -22,6 +22,8 @@ class Hwc2Display : public DisplayEventListener {
   Hwc2Display(hwc2_display_t id);
   virtual ~Hwc2Display();
 
+  int width() const { return mWidth; }
+  int height() const { return mHeight; }
   bool attachable() const { return !mRemoteDisplay; }
   int attach(RemoteDisplay* rd);
   int detach(RemoteDisplay* rd);

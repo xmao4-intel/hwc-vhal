@@ -19,6 +19,7 @@ class RemoteDisplay {
   int xdpi() const { return mXDpi; }
   int ydpi() const { return mYDpi; }
   uint32_t flags() const { return mDisplayFlags.value; }
+  bool primaryHotplug() const { return mDisplayFlags.primaryHotplug; }
 
   uint64_t getDisplayId() const { return mDisplayId; }
   void setDisplayId(uint64_t id) { mDisplayId = id; }

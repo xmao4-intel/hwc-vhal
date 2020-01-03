@@ -8,8 +8,8 @@
 #include <sys/types.h>
 #include <sys/un.h>
 
-#include <cutils/properties.h>
 #include <cutils/log.h>
+#include <cutils/properties.h>
 
 #include "Hwc2Device.h"
 #include "RemoteDisplayMgr.h"
@@ -60,8 +60,18 @@ int Hwc2Device::addRemoteDisplay(RemoteDisplay* rd) {
     ALOGD("%s: attach to %" PRIu64, __func__, kPrimayDisplay);
 
     rd->setDisplayId(kPrimayDisplay);
-    mDisplays.at(kPrimayDisplay).attach(rd);
-    onRefresh(kPrimayDisplay);
+    if (!rd->primaryHotplug() ||
+        (mDisplays.at(kPrimayDisplay).width() == rd->width() &&
+         mDisplays.at(kPrimayDisplay).height() == rd->height())) {
+      ALOGD("Attach to primary");
+      mDisplays.at(kPrimayDisplay).attach(rd);
+      onRefresh(kPrimayDisplay);
+    } else {
+      ALOGD("Reconfig primary");
+      onHotplug(kPrimayDisplay, false);
+      mDisplays.at(kPrimayDisplay).attach(rd);
+      onHotplug(kPrimayDisplay, true);
+    }
   } else {
     auto id = sNextId++;
     ALOGD("%s: add new display %" PRIu64, __func__, id);

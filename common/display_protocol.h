@@ -50,6 +50,8 @@ typedef struct _display_flags {
     struct {
       uint32_t version : 8;  // 0 - legacy, 1 - support layer
       uint32_t mode : 2;  // 0 - legacy, 1 -layers only, 2 - both fb and layers
+      uint32_t primaryHotplug : 1;  // Primary can be configured if request size
+                                    // doesnt match default
     };
   };
 } display_flags;
