@@ -3,8 +3,8 @@
 #include <errno.h>
 #include <inttypes.h>
 
-#include <cutils/properties.h>
 #include <cutils/log.h>
+#include <cutils/properties.h>
 
 #include "Hwc2Display.h"
 #include "LocalDisplay.h"
@@ -518,7 +518,8 @@ int Hwc2Display::updateRotation() {
   uint32_t tr = 0;
   for (auto& layer : mLayers) {
     tr = layer.second.info().transform;
-    if (tr == mTransform)
+    auto& buffer = layer.second.layerBuffer();
+    if (buffer.bufferId && tr == mTransform)
       break;
   }
   if (tr != mTransform) {
