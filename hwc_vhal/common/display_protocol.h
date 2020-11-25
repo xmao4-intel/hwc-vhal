@@ -57,6 +57,7 @@ typedef struct _display_flags {
 
 typedef struct _display_info_t {
   unsigned int flags;
+  unsigned int port;
   unsigned int width;
   unsigned int height;
   int stride;

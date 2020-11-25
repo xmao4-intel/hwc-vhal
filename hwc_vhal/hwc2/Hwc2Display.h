@@ -101,6 +101,7 @@ class Hwc2Display : public DisplayEventListener {
   hwc2_layer_t mLayerIndex = 0;
 
   uint32_t mConfig = 1;
+  int32_t mPort = 0;
   int32_t mWidth = 1280;
   int32_t mHeight = 720;
   int32_t mFramerate = 60;

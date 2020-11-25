@@ -13,6 +13,7 @@ class RemoteDisplay {
   RemoteDisplay(int fd);
   virtual ~RemoteDisplay();
 
+  int port() const { return mPort; }
   int width() const { return mWidth; }
   int height() const { return mHeight; }
   int fps() const { return mFramerate; }
@@ -61,6 +62,7 @@ class RemoteDisplay {
   DisplayStatusListener* mStatusListener = nullptr;
   DisplayEventListener* mEventListener = nullptr;
 
+  uint32_t mPort;
   uint32_t mWidth;
   uint32_t mHeight;
   uint32_t mFramerate;

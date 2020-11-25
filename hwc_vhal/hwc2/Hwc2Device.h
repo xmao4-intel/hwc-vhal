@@ -36,7 +36,7 @@ class Hwc2Device : public hwc2_device_t, public IRemoteDevice {
     return &display->second;
   }
 
-  HWC2::Error onHotplug(hwc2_display_t disp, bool connected);
+  HWC2::Error onHotplug(hwc2_display_t disp, uint32_t connected);
   HWC2::Error onRefresh(hwc2_display_t disp);
 
   // IRemoteDevice

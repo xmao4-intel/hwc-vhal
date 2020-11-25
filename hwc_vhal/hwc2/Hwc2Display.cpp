@@ -85,6 +85,7 @@ int Hwc2Display::attach(RemoteDisplay* rd) {
     return -1;
 
   mRemoteDisplay = rd;
+  mPort = mRemoteDisplay->port();
   mWidth = mRemoteDisplay->width();
   mHeight = mRemoteDisplay->height();
   mFramerate = mRemoteDisplay->fps();
@@ -658,7 +659,7 @@ Error Hwc2Display::setBrightness(float brightness) {
 
 Error Hwc2Display::getIdentificationData(uint8_t* outPort, uint32_t* outDataSize, uint8_t* /*outData*/) {
     ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
-    *outPort = mDisplayID;
+    *outPort = mPort;
     *outDataSize = 0;
     return Error::None;
 }

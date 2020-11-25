@@ -40,7 +40,7 @@ Error Hwc2Device::init() {
   if (mRemoteDisplayMgr->connectToRemote() < 0) {
     server_mode = true;
     mDisplays.emplace(kPrimayDisplay, 0);
-    onHotplug(kPrimayDisplay, true);
+    onHotplug(kPrimayDisplay, HWC2_CONNECTION_CONNECTED);
   }
 
 #ifdef ENABLE_HWC_VNC
@@ -65,11 +65,12 @@ int Hwc2Device::addRemoteDisplay(RemoteDisplay* rd) {
   } else {
     auto id = sNextId++;
     ALOGD("%s: add new display %" PRIu64, __func__, id);
+    ALOGD("%s: add new display port:%d",  __func__, rd->port());
 
     rd->setDisplayId(id);
     mDisplays.emplace(id, id);
     mDisplays.at(id).attach(rd);
-    onHotplug(id, true);
+    onHotplug(id, HWC2_CONNECTION_CONNECTED);
   }
   return 0;
 }
@@ -89,11 +90,11 @@ int Hwc2Device::removeRemoteDisplay(RemoteDisplay* rd) {
     if (id != kPrimayDisplay) {
       ALOGD("%s: remove display %" PRIu64, __func__, id);
 
-      onHotplug(id, false);
+      onHotplug(id, HWC2_CONNECTION_DISCONNECTED);
       mDisplays.erase(id);
       if (mDisplays.empty() && server_mode) {
         mDisplays.emplace(kPrimayDisplay, 0);
-        onHotplug(kPrimayDisplay, true);
+        onHotplug(kPrimayDisplay, HWC2_CONNECTION_CONNECTED);
       }
     }
   }
@@ -132,8 +133,8 @@ uint32_t Hwc2Device::getMaxVirtualDisplayCount() {
   return 2;
 }
 
-Error Hwc2Device::onHotplug(hwc2_display_t disp, bool connected) {
-  ALOGV("%s:disp=%" PRIu64 ", connected=%d", __func__, disp, connected);
+Error Hwc2Device::onHotplug(hwc2_display_t disp, uint32_t connected) {
+  ALOGD("%s:disp=%" PRIu64 ", connected=%d", __func__, disp, connected);
 
   if (mCallbacks.count(HWC2_CALLBACK_HOTPLUG) == 0) {
     mPendingHotplugs.emplace_back(disp, connected);
@@ -169,7 +170,7 @@ Error Hwc2Device::registerCallback(int32_t descriptor,
         mRemoteDisplayMgr->disconnectToRemote();
         mRemoteDisplayMgr->connectToRemote();
       } else {
-        onHotplug(kPrimayDisplay, true);
+        onHotplug(kPrimayDisplay, HWC2_CONNECTION_CONNECTED);
       }
     }
     mCallbacks[desc] = {data, function};

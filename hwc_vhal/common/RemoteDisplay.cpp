@@ -367,6 +367,7 @@ int RemoteDisplay::onDisplayInfoAck(const display_event_t& ev) {
     ALOGE("%s:%d: Can't send display info request\n", __func__, __LINE__);
     return -1;
   }
+  mPort = info.port;
   mWidth = info.width;
   mHeight = info.height;
   mFramerate = info.fps;
