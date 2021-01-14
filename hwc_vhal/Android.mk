@@ -27,7 +27,7 @@ TARGET_USES_HWC2 := true
 #ENABLE_HWC_VNC := true
 #ENABLE_HWC_VNC_TEST := true
 #ENABLE_LAYER_DUMP := true
-VIDEO_STREAMING_OPT := true
+#VIDEO_STREAMING_OPT := true
 
 LOCAL_CFLAGS := -g -DLOG_TAG=\"hwc_vhal\" -g -Wno-missing-field-initializers -Wno-unused-parameter
 LOCAL_CPPFLAGS := -g -std=c++11 -Wall -Werror -Wno-unused-parameter
@@ -112,6 +112,7 @@ LOCAL_C_INCLUDES += \
 LOCAL_SHARED_LIBRARIES := \
         liblog \
         libcutils \
+        libutils \
         libhardware \
 
 LOCAL_PROPRIETARY_MODULE := true
@@ -142,6 +143,7 @@ LOCAL_C_INCLUDES += \
 LOCAL_SHARED_LIBRARIES := \
         liblog \
         libcutils \
+        libutils \
         libhardware \
 
 LOCAL_STATIC_LIBRARIES := \

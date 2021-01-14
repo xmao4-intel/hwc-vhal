@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <hardware/hwcomposer2.h>
-
 #include "Hwc2Display.h"
 #include "IRemoteDevice.h"
 #include "RemoteDisplayMgr.h"
@@ -33,7 +32,7 @@ class Hwc2Device : public hwc2_device_t, public IRemoteDevice {
     if (display == mDisplays.end()) {
       return nullptr;
     }
-    return &display->second;
+    return display->second.get();
   }
 
   HWC2::Error onHotplug(hwc2_display_t disp, uint32_t connected);
@@ -120,6 +119,15 @@ class Hwc2Device : public hwc2_device_t, public IRemoteDevice {
   }
   int onUnhookClient(rfbClientPtr client) override { return 0; }
 #endif
+  struct CallbackInfo {
+    hwc2_callback_data_t data;
+    hwc2_function_pointer_t pointer;
+  };
+
+  std::unordered_map<int32_t, CallbackInfo>
+  getCallbacks() {
+    return mCallbacks;
+  }
 
  private:
   static std::atomic<hwc2_display_t> sNextId;
@@ -128,14 +136,10 @@ class Hwc2Device : public hwc2_device_t, public IRemoteDevice {
   const int kMaxDisplayCount = 100;
   const hwc2_display_t kPrimayDisplay = 0;
 
-  struct CallbackInfo {
-    hwc2_callback_data_t data;
-    hwc2_function_pointer_t pointer;
-  };
   std::unordered_map<int32_t, CallbackInfo> mCallbacks;
   std::vector<std::pair<hwc2_display_t, bool>> mPendingHotplugs;
 
-  std::map<hwc2_display_t, Hwc2Display> mDisplays;
+  std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>> mDisplays;
   std::mutex mDisplayMutex;
 
   std::unique_ptr<RemoteDisplayMgr> mRemoteDisplayMgr;

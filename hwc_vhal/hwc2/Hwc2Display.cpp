@@ -10,6 +10,7 @@
 #include "LocalDisplay.h"
 #include "RemoteDisplay.h"
 
+#include "Hwc2Device.h"
 #ifdef ENABLE_LAYER_DUMP
 #include "BufferDumper.h"
 #endif
@@ -23,7 +24,9 @@ using namespace HWC2;
 #define LAYER_TRACE(...)
 #endif
 
-Hwc2Display::Hwc2Display(hwc2_display_t id) {
+Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
+  : mDevice(device),
+    mVsyncThread(*this) {
   ALOGD("%s", __func__);
   mDisplayID = id;
 
@@ -64,6 +67,7 @@ Hwc2Display::Hwc2Display(hwc2_display_t id) {
   }
   // }
 #endif
+  mVsyncThread.run("", -19 /* ANDROID_PRIORITY_URGENT_AUDIO */);
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -534,9 +538,89 @@ Error Hwc2Display::setPowerMode(int32_t mode) {
   return Error::None;
 }
 
+static bool isValid(Vsync enable) {
+  switch (enable) {
+    case Vsync::Enable: // Fall-through
+    case Vsync::Disable: return true;
+    case Vsync::Invalid: return false;
+  }
+}
+
 Error Hwc2Display::setVsyncEnabled(int32_t enabled) {
-  ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
+  ALOGV("Hwc2Display(%" PRIu64 ")::%s %d", mDisplayID, __func__, enabled);
+  Vsync enable = static_cast<Vsync>(enabled);
+  if (!isValid(enable)) {
+    return Error::BadParameter;
+  }
+  if (enable == mVsyncEnabled) {
+    return Error::None;
+  }
+
+  mVsyncEnabled = enable;
   return Error::None;
+}
+
+bool Hwc2Display::VsyncThread::threadLoop() {
+  struct timespec rt;
+  if (clock_gettime(CLOCK_MONOTONIC, &rt) == -1) {
+    ALOGE("%s: error in vsync thread clock_gettime: %s",
+          __FUNCTION__, strerror(errno));
+    return true;
+  }
+  const int logInterval = 60;
+  int64_t lastLogged = rt.tv_sec;
+  int sent = 0;
+  int lastSent = 0;
+
+  struct timespec wait_time;
+  wait_time.tv_sec = 0;
+  wait_time.tv_nsec = 1000 * 1000 * 1000 / mDisplay.mFramerate;
+  const int64_t kOneRefreshNs = 1000 * 1000 * 1000 / mDisplay.mFramerate;
+  const int64_t kOneSecondNs = 1000ULL * 1000ULL * 1000ULL;
+  int64_t lastTimeNs = -1;
+  int64_t phasedWaitNs = 0;
+  int64_t currentNs = 0;
+
+  while (true) {
+    clock_gettime(CLOCK_MONOTONIC, &rt);
+    currentNs = rt.tv_nsec + rt.tv_sec * kOneSecondNs;
+
+    if (lastTimeNs < 0) {
+      phasedWaitNs = currentNs + kOneRefreshNs;
+    } else {
+      phasedWaitNs = kOneRefreshNs *
+        (( currentNs - lastTimeNs) / kOneRefreshNs + 1) + lastTimeNs;
+    }
+
+    wait_time.tv_sec = phasedWaitNs / kOneSecondNs;
+    wait_time.tv_nsec = phasedWaitNs - wait_time.tv_sec * kOneSecondNs;
+
+    int ret;
+    do {
+      ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &wait_time, NULL);
+    } while (ret == -1 && errno == EINTR);
+
+    lastTimeNs = phasedWaitNs;
+
+    if (mDisplay.mVsyncEnabled != Vsync::Enable) {
+      continue;
+    }
+
+    auto callbacks = mDisplay.mDevice.getCallbacks();
+    const auto& callbackInfo = callbacks[(int32_t)Callback::Vsync];
+    auto vsync = reinterpret_cast<HWC2_PFN_VSYNC>(callbackInfo.pointer);
+    if (vsync) {
+      vsync(callbackInfo.data, mDisplay.mDisplayID, lastTimeNs);
+    }
+
+    if (rt.tv_sec - lastLogged >= logInterval) {
+      ALOGV("sent %d syncs in %ld", sent - lastSent, (long)(rt.tv_sec - lastLogged));
+      lastLogged = rt.tv_sec;
+      lastSent = sent;
+    }
+    ++sent;
+  }
+  return false;
 }
 
 bool Hwc2Display::checkFullScreenMode() {

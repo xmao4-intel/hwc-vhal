@@ -6,20 +6,21 @@
 #include <vector>
 
 #include <hardware/hwcomposer2.h>
-
 #include "Hwc2Layer.h"
 #include "IRemoteDevice.h"
 #include "display_protocol.h"
+#include <utils/Thread.h>
 
 #ifdef ENABLE_HWC_VNC
 #include "VncDisplay.h"
 #endif
 
 class RemoteDisplay;
+class Hwc2Device;
 
 class Hwc2Display : public DisplayEventListener {
  public:
-  Hwc2Display(hwc2_display_t id);
+  Hwc2Display(hwc2_display_t id, Hwc2Device& device);
   virtual ~Hwc2Display();
 
   bool attachable() const { return !mRemoteDisplay; }
@@ -87,6 +88,17 @@ class Hwc2Display : public DisplayEventListener {
   bool checkFullScreenMode();
   void exitFullScreenMode();
 
+  // Generate sw vsync signal
+  class VsyncThread : public android::Thread {
+  public:
+      VsyncThread(Hwc2Display& display)
+        : mDisplay(display) {}
+      virtual ~VsyncThread() {}
+  private:
+      Hwc2Display& mDisplay;
+      bool threadLoop() final;
+  };
+
  protected:
   HWC2::Error hotplug(bool in);
   HWC2::Error vsync(int64_t timestamp);
@@ -127,6 +139,9 @@ class Hwc2Display : public DisplayEventListener {
   int mReleaseFence = -1;
 
   int mFrameNum = 0;
+  Hwc2Device& mDevice;
+  HWC2::Vsync mVsyncEnabled;
+  VsyncThread mVsyncThread;
 
 #ifdef ENABLE_LAYER_DUMP
   int mFrameToDump = 0;

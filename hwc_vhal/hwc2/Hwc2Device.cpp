@@ -12,6 +12,7 @@
 #include <cutils/log.h>
 
 #include "Hwc2Device.h"
+#include "Hwc2Display.h"
 #include "RemoteDisplayMgr.h"
 
 using namespace HWC2;
@@ -39,7 +40,8 @@ Error Hwc2Device::init() {
   mRemoteDisplayMgr->init(this);
   if (mRemoteDisplayMgr->connectToRemote() < 0) {
     server_mode = true;
-    mDisplays.emplace(kPrimayDisplay, 0);
+    auto display = std::make_shared<Hwc2Display>(0,*this);
+    mDisplays.emplace(kPrimayDisplay, std::move(display));
     onHotplug(kPrimayDisplay, HWC2_CONNECTION_CONNECTED);
   }
 
@@ -56,11 +58,11 @@ int Hwc2Device::addRemoteDisplay(RemoteDisplay* rd) {
   std::unique_lock<std::mutex> lk(mDisplayMutex);
 
   if (mDisplays.find(kPrimayDisplay) != mDisplays.end() &&
-      mDisplays.at(kPrimayDisplay).attachable()) {
+      mDisplays.at(kPrimayDisplay)->attachable()) {
     ALOGD("%s: attach to %" PRIu64, __func__, kPrimayDisplay);
 
     rd->setDisplayId(kPrimayDisplay);
-    mDisplays.at(kPrimayDisplay).attach(rd);
+    mDisplays.at(kPrimayDisplay)->attach(rd);
     onRefresh(kPrimayDisplay);
   } else {
     auto id = sNextId++;
@@ -68,8 +70,9 @@ int Hwc2Device::addRemoteDisplay(RemoteDisplay* rd) {
     ALOGD("%s: add new display port:%d",  __func__, rd->port());
 
     rd->setDisplayId(id);
-    mDisplays.emplace(id, id);
-    mDisplays.at(id).attach(rd);
+    auto display = std::make_shared<Hwc2Display>(id,*this);
+    mDisplays.emplace(id, std::move(display));
+    mDisplays.at(id)->attach(rd);
     onHotplug(id, HWC2_CONNECTION_CONNECTED);
   }
   return 0;
@@ -86,14 +89,15 @@ int Hwc2Device::removeRemoteDisplay(RemoteDisplay* rd) {
   if (mDisplays.find(id) != mDisplays.end()) {
     ALOGD("%s: detach remote from display %" PRIu64, __func__, id);
 
-    mDisplays.at(id).detach(rd);
+    mDisplays.at(id)->detach(rd);
     if (id != kPrimayDisplay) {
       ALOGD("%s: remove display %" PRIu64, __func__, id);
 
       onHotplug(id, HWC2_CONNECTION_DISCONNECTED);
       mDisplays.erase(id);
       if (mDisplays.empty() && server_mode) {
-        mDisplays.emplace(kPrimayDisplay, 0);
+        auto display = std::make_shared<Hwc2Display>(0,*this);
+        mDisplays.emplace(kPrimayDisplay, std::move(display));
         onHotplug(kPrimayDisplay, HWC2_CONNECTION_CONNECTED);
       }
     }
