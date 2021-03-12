@@ -5,6 +5,7 @@
 
 #include <cutils/log.h>
 #include <cutils/properties.h>
+#include <unistd.h>
 
 #include "Hwc2Display.h"
 #include "LocalDisplay.h"

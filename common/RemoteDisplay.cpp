@@ -6,6 +6,7 @@
 
 #include <cutils/properties.h>
 #include <cutils/log.h>
+#include <unistd.h>
 
 #include <sys/socket.h>
 

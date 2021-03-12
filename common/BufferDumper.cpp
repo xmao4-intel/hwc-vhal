@@ -1,4 +1,4 @@
-
+#undef NDEBUG
 //#define LOG_NDEBUG 0
 #include <cutils/log.h>
 
@@ -7,6 +7,7 @@
 
 #include "BufferDumper.h"
 #include "BufferMapper.h"
+#include <unistd.h>
 
 BufferDumper::BufferDumper() {
   ALOGV("BufferDumper::%s", __func__);

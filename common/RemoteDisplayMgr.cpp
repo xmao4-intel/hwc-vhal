@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <unistd.h>
 
 #include "RemoteDisplayMgr.h"
 
@@ -25,6 +26,9 @@ RemoteDisplayMgr::~RemoteDisplayMgr() {
 }
 
 int RemoteDisplayMgr::init(IRemoteDevice* dev) {
+
+  return -1;
+
   mEpollFd = epoll_create(kMaxEvents);
   if (mEpollFd == -1) {
     ALOGE("epoll_create:%s", strerror(errno));
@@ -82,7 +86,10 @@ int RemoteDisplayMgr::removeRemoteDisplay(int fd) {
 }
 
 int RemoteDisplayMgr::connectToRemote() {
+
   ALOGV("%s", __func__);
+
+  return -1;
 
   struct sockaddr_un addr;
   std::unique_lock<std::mutex> lck(mConnectionMutex);

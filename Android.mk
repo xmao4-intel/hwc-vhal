@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+TARGET_USE_HWCOMPOSER_VHAL := true
+
 ifeq ($(TARGET_USE_HWCOMPOSER_VHAL), true)
 
 LOCAL_PATH := $(call my-dir)
