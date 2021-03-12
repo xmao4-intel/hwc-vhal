@@ -82,6 +82,9 @@ class Hwc2Display : public DisplayEventListener {
   HWC2::Error setPowerMode(int32_t mode);
   HWC2::Error setVsyncEnabled(int32_t enabled);
   HWC2::Error validate(uint32_t* numTypes, uint32_t* numRequests);
+  HWC2::Error getIdentificationData(uint8_t* outPort, uint32_t* outDataSize, uint8_t* outData);
+  HWC2::Error getCapabilities(uint32_t* outNumCapabilities, uint32_t* outCapabilities);
+  HWC2::Error setBrightness(float brightness);
 
  protected:
   HWC2::Error hotplug(bool in);

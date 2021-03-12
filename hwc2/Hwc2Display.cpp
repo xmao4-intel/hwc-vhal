@@ -510,6 +510,26 @@ Error Hwc2Display::validate(uint32_t* numTypes, uint32_t* numRequests) {
   return *numTypes > 0 ? Error::HasChanges : Error::None;
 }
 
+Error Hwc2Display::setBrightness(float brightness) {
+    ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
+
+    return Error::None;
+}
+
+Error Hwc2Display::getIdentificationData(uint8_t* outPort, uint32_t* outDataSize, uint8_t* /*outData*/) {
+    ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
+    *outPort = mDisplayID;
+    *outDataSize = 0;
+    return Error::None;
+}
+
+Error Hwc2Display::getCapabilities(uint32_t* outNumCapabilities, uint32_t* /*outCapabilities*/) {
+    ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
+    *outNumCapabilities = 0;
+
+    return Error::None;
+}
+
 int Hwc2Display::updateRotation() {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
 

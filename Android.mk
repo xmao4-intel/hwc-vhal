@@ -62,6 +62,12 @@ LOCAL_CPPFLAGS += \
         -DSUPPORT_HWC_2_2 \
         -DSUPPORT_HWC_2_3
 endif
+ifneq ($(filter 11, $(PLATFORM_VERSION)),)
+LOCAL_CPPFLAGS += \
+        -DSUPPORT_HWC_2_1 \
+        -DSUPPORT_HWC_2_2 \
+        -DSUPPORT_HWC_2_3
+endif
 
 LOCAL_SRC_FILES := \
         common/RemoteDisplay.cpp \

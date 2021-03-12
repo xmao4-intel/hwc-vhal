@@ -416,17 +416,33 @@ hwc2_function_pointer_t Hwc2Device::getFunctionHook(struct hwc2_device* dev,
     case FunctionDescriptor::GetRenderIntents:
     case FunctionDescriptor::SetColorModeWithRenderIntent:
     case FunctionDescriptor::GetDataspaceSaturationMatrix:
+        ALOGI("%s: return nullptr", __func__);
+        return nullptr;
 #endif
 
 #ifdef SUPPORT_HWC_2_3
     // composer 2.3
     case FunctionDescriptor::GetDisplayIdentificationData:
+        return asFP<HWC2_PFN_GET_DISPLAY_IDENTIFICATION_DATA>(
+            DisplayHook<decltype(&Hwc2Display::getIdentificationData),
+                &Hwc2Display::getIdentificationData, uint8_t*, uint32_t*, uint8_t*>);
     case FunctionDescriptor::GetDisplayCapabilities:
+        return asFP<HWC2_PFN_GET_DISPLAY_CAPABILITIES>(
+            DisplayHook<decltype(&Hwc2Display::getCapabilities),
+                &Hwc2Display::getCapabilities, uint32_t*, uint32_t*>);
+    case FunctionDescriptor::SetDisplayBrightness:
+        return asFP<HWC2_PFN_SET_DISPLAY_BRIGHTNESS>(
+            DisplayHook<decltype(&Hwc2Display::setBrightness),
+                &Hwc2Display::setBrightness, float>);
+    //optional
     case FunctionDescriptor::SetLayerColorTransform:
     case FunctionDescriptor::GetDisplayedContentSamplingAttributes:
     case FunctionDescriptor::SetDisplayedContentSamplingEnabled:
     case FunctionDescriptor::GetDisplayedContentSample:
     case FunctionDescriptor::SetLayerPerFrameMetadataBlobs:
+    case FunctionDescriptor::GetDisplayBrightnessSupport:
+        ALOGI("%s: return nullptr", __func__);
+        return nullptr;
 #endif
 
     case FunctionDescriptor::Invalid:
