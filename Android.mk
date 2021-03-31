@@ -111,6 +111,7 @@ endif
 LOCAL_C_INCLUDES += \
         $(LOCAL_PATH) \
         $(LOCAL_PATH)/common \
+        $(INTEL_MINIGBM)/cros_gralloc
 
 LOCAL_SHARED_LIBRARIES := \
         liblog \

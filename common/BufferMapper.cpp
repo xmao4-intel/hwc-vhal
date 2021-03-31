@@ -42,6 +42,10 @@ int BufferMapper::getGrallocDevice() {
         mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_GET_FORMAT));
     pfnGetStride = (GRALLOC1_PFN_GET_STRIDE)(
         mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_GET_STRIDE));
+    pfnImportBuffer = (GRALLOC1_PFN_IMPORT_BUFFER)(
+        mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_IMPORT_BUFFER));
+    pfnFreeBuffer = (GRALLOC1_PFN_FREE_BUFFER)(
+        mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_FREE_BUFFER));
   }
   return 0;
 }
@@ -134,6 +138,30 @@ int BufferMapper::unlockBuffer(buffer_handle_t b) {
   }
   if (releaseFenceFd >= 0) {
     close(releaseFenceFd);
+  }
+  return 0;
+}
+
+int BufferMapper::importBuffer(buffer_handle_t b, buffer_handle_t *bufferHandle) {
+  ALOGV("%s", __func__);
+
+  if (!b || !pfnImportBuffer) {
+    return -1;
+  }
+  if (pfnImportBuffer(mGralloc, b, bufferHandle) != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+int BufferMapper::freeBuffer(buffer_handle_t b) {
+  ALOGV("%s", __func__);
+
+  if (!b || !pfnFreeBuffer) {
+    return -1;
+  }
+  if (pfnFreeBuffer(mGralloc, (void*)b) != 0) {
+    return -1;
   }
   return 0;
 }
