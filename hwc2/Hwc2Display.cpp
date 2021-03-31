@@ -56,6 +56,14 @@ Hwc2Display::Hwc2Display(hwc2_display_t id) {
   }
   // }
 #endif
+
+#ifdef ENABLE_HWC_UIO
+  mUioDisplay = new UioDisplay((int)id, mWidth, mHeight);
+  if (mUioDisplay && mUioDisplay->init() < 0) {
+    delete mUioDisplay;
+    mUioDisplay = nullptr;
+  }
+#endif
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -383,6 +391,12 @@ Error Hwc2Display::present(int32_t* retireFence) {
 #ifdef ENABLE_HWC_VNC
   if (mVncDisplay && mFbTarget) {
     mVncDisplay->postFb(mFbTarget);
+  }
+#endif
+
+#ifdef ENABLE_HWC_UIO
+  if (mUioDisplay && mFbTarget) {
+    mUioDisplay->postFb(mFbTarget);
   }
 #endif
 

@@ -29,6 +29,7 @@ include $(CLEAR_VARS)
 #ENABLE_HWC_VNC := true
 #ENABLE_HWC_VNC_TEST := true
 #ENABLE_LAYER_DUMP := true
+ENABLE_HWC_UIO := true
 
 LOCAL_CFLAGS := -g -DLOG_TAG=\"hwc_vhal\" -g -Wno-missing-field-initializers -Wno-unused-parameter
 LOCAL_CPPFLAGS := -g -std=c++11 -Wall -Werror -Wno-unused-parameter
@@ -106,6 +107,18 @@ LOCAL_C_INCLUDES += \
         $(LOCAL_PATH)/vnc \
 
 LOCAL_STATIC_LIBRARIES := libvncserver libz libpng libjpeg libssl libcrypto
+endif
+
+ifeq ($(ENABLE_HWC_UIO), true)
+LOCAL_SRC_FILES += \
+        uio/UioDisplay.cpp
+
+LOCAL_CPPFLAGS += \
+        -DENABLE_HWC_UIO
+
+LOCAL_C_INCLUDES += \
+        $(INTEL_MINIGBM)/cros_gralloc \
+        $(LOCAL_PATH)/uio
 endif
 
 LOCAL_C_INCLUDES += \

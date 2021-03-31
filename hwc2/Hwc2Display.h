@@ -15,6 +15,10 @@
 #include "VncDisplay.h"
 #endif
 
+#ifdef ENABLE_HWC_UIO
+#include "UioDisplay.h"
+#endif
+
 class RemoteDisplay;
 
 class Hwc2Display : public DisplayEventListener {
@@ -131,6 +135,10 @@ class Hwc2Display : public DisplayEventListener {
 
 #ifdef ENABLE_HWC_VNC
   VncDisplay* mVncDisplay = nullptr;
+#endif
+
+#ifdef ENABLE_HWC_UIO
+  UioDisplay* mUioDisplay = nullptr;
 #endif
 };
 
