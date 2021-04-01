@@ -109,6 +109,8 @@ int UioDisplay::postFb(buffer_handle_t fb) {
     uint8_t* rgb = nullptr;
     uint32_t stride = 0;
     auto& mapper = BufferMapper::getMapper();
+    if (app.shmHeader->flags & KVMFR_HEADER_FLAG_RESTART)
+      app.shmHeader->flags &= ~KVMFR_HEADER_FLAG_RESTART;
     buffer_handle_t bufferHandle;
     mapper.importBuffer(fb, &bufferHandle);
     mapper.lockBuffer(bufferHandle, rgb, stride);
