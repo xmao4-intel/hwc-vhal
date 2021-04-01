@@ -42,6 +42,31 @@ Error Hwc2Device::init() {
     onHotplug(kPrimayDisplay, true);
   }
 
+#ifdef ENABLE_MULTI_DISPLAY
+  int maxDisplayCount = kMaxDisplayCount;
+#ifdef ENABLE_HWC_UIO
+  for(int i = 0; i < kMaxDisplayCount; i ++) {
+    int len  = snprintf(NULL, 0, "/dev/uio%d", i);
+    char * path = (char *)malloc(len + 1);
+    sprintf(path, "/dev/uio%d", i);
+    int fd = open(path, O_RDWR);
+    if (fd < 0)
+    {
+      close(fd);
+      free(path);
+      maxDisplayCount = i;
+      break;
+    }
+    close(fd);
+    free(path);
+  }
+#endif
+  for(int i = 1; i < maxDisplayCount; i++) {
+    mDisplays.emplace(i, i);
+    onHotplug(i, true);
+  }
+#endif
+
 #ifdef ENABLE_HWC_VNC
   VncDisplay::addVncDisplayObserver(this);
 #endif

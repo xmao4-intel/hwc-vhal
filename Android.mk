@@ -30,6 +30,7 @@ include $(CLEAR_VARS)
 #ENABLE_HWC_VNC_TEST := true
 #ENABLE_LAYER_DUMP := true
 ENABLE_HWC_UIO := true
+ENABLE_MULTI_DISPLAY := true
 
 LOCAL_CFLAGS := -g -DLOG_TAG=\"hwc_vhal\" -g -Wno-missing-field-initializers -Wno-unused-parameter
 LOCAL_CPPFLAGS := -g -std=c++11 -Wall -Werror -Wno-unused-parameter
@@ -119,6 +120,11 @@ LOCAL_CPPFLAGS += \
 LOCAL_C_INCLUDES += \
         $(INTEL_MINIGBM)/cros_gralloc \
         $(LOCAL_PATH)/uio
+endif
+
+ifeq ($(ENABLE_MULTI_DISPLAY), true)
+LOCAL_CPPFLAGS += \
+        -DENABLE_MULTI_DISPLAY
 endif
 
 LOCAL_C_INCLUDES += \
