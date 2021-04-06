@@ -61,7 +61,7 @@ Error Hwc2Device::init() {
     free(path);
   }
 #endif
-  for(int i = 1; i < maxDisplayCount; i++) {
+  for(int i = maxDisplayCount - 1; i >= 1 ; i--) {
     mDisplays.emplace(i, i);
     onHotplug(i, true);
   }
