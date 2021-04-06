@@ -81,7 +81,7 @@ int UioDisplay::init() {
   }
   app.shmHeader        = (KVMFRHeader *)access_address;
   app.pointerData      = (uint8_t *)ALIGN_UP(access_address + sizeof(KVMFRHeader));
-  app.pointerDataSize  = 1048576; // 1MB fixed for pointer size, should be more then enough
+  app.pointerDataSize  = 1024; // 1Kb for pointer, Android doesn't need this in fact
   app.pointerOffset    = app.pointerData - access_address;
   app.frames           = (uint8_t *)ALIGN_UP(app.pointerData + app.pointerDataSize);
   app.frameSize        = ALIGN_DN((shmSize - (app.frames - access_address)) / MAX_FRAMES);
