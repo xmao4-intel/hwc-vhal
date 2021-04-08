@@ -583,3 +583,16 @@ void Hwc2Display::dump() {
     l.second.dump();
   }
 }
+
+Error Hwc2Display::getVsyncPeriod(hwc2_vsync_period_t* period) {
+  ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
+  *period = 1000 * 1000 * 1000 / mFramerate;
+  return Error::None;
+}
+
+Error Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
+                       hwc_vsync_period_change_constraints_t* constraints,
+                       hwc_vsync_period_change_timeline_t* timeline_t) {
+  ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
+  return Error::None;
+}

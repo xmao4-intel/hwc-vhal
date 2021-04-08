@@ -68,7 +68,8 @@ ifneq ($(filter 11, $(PLATFORM_VERSION)),)
 LOCAL_CPPFLAGS += \
         -DSUPPORT_HWC_2_1 \
         -DSUPPORT_HWC_2_2 \
-        -DSUPPORT_HWC_2_3
+        -DSUPPORT_HWC_2_3 \
+        -DSUPPORT_HWC_2_4
 endif
 
 LOCAL_SRC_FILES := \

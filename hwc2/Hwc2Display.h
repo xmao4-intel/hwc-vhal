@@ -89,6 +89,10 @@ class Hwc2Display : public DisplayEventListener {
   HWC2::Error getIdentificationData(uint8_t* outPort, uint32_t* outDataSize, uint8_t* outData);
   HWC2::Error getCapabilities(uint32_t* outNumCapabilities, uint32_t* outCapabilities);
   HWC2::Error setBrightness(float brightness);
+  HWC2::Error getVsyncPeriod(hwc2_vsync_period_t* period);
+  HWC2::Error setActiveConfigWithConstraints(hwc2_config_t config,
+                                             hwc_vsync_period_change_constraints_t* constraints,
+                                             hwc_vsync_period_change_timeline_t* timeline_t);
 
  protected:
   HWC2::Error hotplug(bool in);

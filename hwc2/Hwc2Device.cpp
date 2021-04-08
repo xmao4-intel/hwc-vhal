@@ -470,6 +470,30 @@ hwc2_function_pointer_t Hwc2Device::getFunctionHook(struct hwc2_device* dev,
         return nullptr;
 #endif
 
+#ifdef SUPPORT_HWC_2_4
+    // composer 2.4
+    case FunctionDescriptor::GetDisplayVsyncPeriod:
+        return asFP<HWC2_PFN_GET_DISPLAY_VSYNC_PERIOD>(
+            DisplayHook<decltype(&Hwc2Display::getVsyncPeriod),
+                &Hwc2Display::getVsyncPeriod, hwc2_vsync_period_t*>);
+    case FunctionDescriptor::SetActiveConfigWithConstraints:
+        return asFP<HWC2_PFN_SET_ACTIVE_CONFIG_WITH_CONSTRAINTS>(
+            DisplayHook<decltype(&Hwc2Display::setActiveConfigWithConstraints),
+                &Hwc2Display::setActiveConfigWithConstraints,
+                hwc2_config_t, hwc_vsync_period_change_constraints_t*,
+                hwc_vsync_period_change_timeline_t*>);
+    //optional
+    case FunctionDescriptor::GetDisplayConnectionType:
+    case FunctionDescriptor::SetAutoLowLatencyMode:
+    case FunctionDescriptor::GetSupportedContentTypes:
+    case FunctionDescriptor::SetContentType:
+    case FunctionDescriptor::GetClientTargetProperty:
+    case FunctionDescriptor::SetLayerGenericMetadata:
+    case FunctionDescriptor::GetLayerGenericMetadataKey:
+        ALOGI("%s: return nullptr", __func__);
+        return nullptr;
+#endif
+
     case FunctionDescriptor::Invalid:
     default:
       ALOGE("%s:Unsupported HWC2 function, descriptor=%d", __func__,
