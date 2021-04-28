@@ -58,7 +58,8 @@ int Hwc2Device::addRemoteDisplay(RemoteDisplay* rd) {
   std::unique_lock<std::mutex> lk(mDisplayMutex);
 
   if (mDisplays.find(kPrimayDisplay) != mDisplays.end() &&
-      mDisplays.at(kPrimayDisplay)->attachable()) {
+      mDisplays.at(kPrimayDisplay)->attachable() &&
+      rd->port() == 0) {
     ALOGD("%s: attach to %" PRIu64, __func__, kPrimayDisplay);
 
     rd->setDisplayId(kPrimayDisplay);
