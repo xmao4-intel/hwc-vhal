@@ -103,14 +103,15 @@ int UioDisplay::init() {
 
 int UioDisplay::postFb(buffer_handle_t fb) {
   ALOGV("%s", __func__);
-  if(app.running)
+  if (app.shmHeader->flags & KVMFR_HEADER_FLAG_RESTART)
+    app.shmHeader->flags &= ~KVMFR_HEADER_FLAG_RESTART;
+  if(app.running && (app.shmHeader->flags &= KVMFR_HEADER_FLAG_READY))
   {
+    app.shmHeader->flags &= ~KVMFR_HEADER_FLAG_READY;
     volatile KVMFRFrame * fi = &(app.shmHeader->frame);
     uint8_t* rgb = nullptr;
     uint32_t stride = 0;
     auto& mapper = BufferMapper::getMapper();
-    if (app.shmHeader->flags & KVMFR_HEADER_FLAG_RESTART)
-      app.shmHeader->flags &= ~KVMFR_HEADER_FLAG_RESTART;
     buffer_handle_t bufferHandle;
     mapper.importBuffer(fb, &bufferHandle);
     mapper.lockBuffer(bufferHandle, rgb, stride);
