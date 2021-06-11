@@ -126,9 +126,11 @@ int UioDisplay::postFb(buffer_handle_t fb) {
       fi->pitch   = fi->width * 4;
       fi->dataPos = app.frameOffset[frame_id];
       fi->flags = KVMFR_FRAME_FLAG_UPDATE;
+      fi->rotate = mRot;
     } else {
       ALOGE("Failed to lock front buffer\n");
     }
+
     mapper.unlockBuffer(bufferHandle);
     mapper.freeBuffer(bufferHandle);
     if(++frame_id >= 2)

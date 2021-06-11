@@ -501,6 +501,7 @@ Error Hwc2Display::validate(uint32_t* numTypes, uint32_t* numRequests) {
 
   *numTypes = 0;
   *numRequests = 0;
+
   for (auto& l : mLayers) {
     Hwc2Layer& layer = l.second;
     switch (layer.type()) {
@@ -519,6 +520,9 @@ Error Hwc2Display::validate(uint32_t* numTypes, uint32_t* numRequests) {
         break;
     }
   }
+#ifdef ENABLE_HWC_UIO
+  checkRotation();
+#endif
 
   // dump();
   return *numTypes > 0 ? Error::HasChanges : Error::None;
@@ -543,6 +547,27 @@ Error Hwc2Display::getCapabilities(uint32_t* outNumCapabilities, uint32_t* /*out
 
     return Error::None;
 }
+
+#ifdef ENABLE_HWC_UIO
+int Hwc2Display::checkRotation() {
+  ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
+
+  if(!mUioDisplay)
+    return -1;
+  uint32_t tr = 0;
+  for (auto& layer : mLayers) {
+    tr = layer.second.info().transform;
+    if (tr != 0)
+      break;
+  }
+  int rot = (tr == 0) ? 0 : (tr == 4) ? 1 : (tr == 3) ? 2 : 3;
+
+  mUioDisplay->setRotation(rot);
+  mTransform = tr;
+
+  return 0;
+}
+#endif
 
 int Hwc2Display::updateRotation() {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);

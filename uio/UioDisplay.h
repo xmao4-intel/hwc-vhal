@@ -37,6 +37,9 @@ class UioDisplay {
   ~UioDisplay();
   int postFb(buffer_handle_t fb);
   int init();
+  void setRotation(int rot) {
+    mRot = rot;
+  }
 
  private:
   int mDisplayId = 0;
@@ -44,6 +47,7 @@ class UioDisplay {
   int frame_id = 0;
   uint32_t mWidth = 720;
   uint32_t mHeight = 1280;
+  int mRot = 0;
 
  private:
   int uioOpenFile(const char * shmDevice, const char * file);

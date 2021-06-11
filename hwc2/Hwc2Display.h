@@ -99,6 +99,9 @@ class Hwc2Display : public DisplayEventListener {
   HWC2::Error vsync(int64_t timestamp);
   HWC2::Error refresh();
   int updateRotation();
+#ifdef ENABLE_HWC_UIO
+  int checkRotation();
+#endif
 
  protected:
   const char* mName = "PrimaryDisplay";
