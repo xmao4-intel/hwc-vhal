@@ -95,7 +95,6 @@ int UioDisplay::init() {
   app.shmHeader->version = KVMFR_HEADER_VERSION;
   // zero and notify the client we are starting
   memset(&(app.shmHeader->frame ), 0, sizeof(KVMFRFrame ));
-  memset(&(app.shmHeader->cursor), 0, sizeof(KVMFRCursor));
   app.shmHeader->flags &= ~KVMFR_HEADER_FLAG_RESTART;
   app.running = true;
   return 0;

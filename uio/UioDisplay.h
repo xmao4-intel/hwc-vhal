@@ -10,15 +10,49 @@
 #include <string.h>
 #include <inttypes.h>
 #include "BufferMapper.h"
-#include "common/KVMFR.h"
 
 #define ALIGN_DN(x) ((uintptr_t)(x) & ~0x7F)
 #define ALIGN_UP(x) ALIGN_DN(x + 0x7F)
+#define KVMFR_HEADER_MAGIC   "[[KVMFR]]"
+#define KVMFR_HEADER_VERSION 8
 #define MAX_FRAMES 2
+
+#define KVMFR_FRAME_FLAG_UPDATE 1 // frame update available
+
+#define KVMFR_HEADER_FLAG_RESTART 1 // restart signal from client
+#define KVMFR_HEADER_FLAG_READY   2 // ready signal from client
+#define KVMFR_HEADER_FLAG_PAUSED  4 // capture has been paused by the host
 
 class UioDisplay {
 
  public:
+  enum FrameType
+  {
+    FRAME_TYPE_INVALID   ,
+    FRAME_TYPE_BGRA      , // BGRA interleaved: B,G,R,A 32bpp
+    FRAME_TYPE_RGBA      , // RGBA interleaved: R,G,B,A 32bpp
+    FRAME_TYPE_RGBA10    , // RGBA interleaved: R,G,B,A 10,10,10,2 bpp
+    FRAME_TYPE_YUV420    , // YUV420
+    FRAME_TYPE_MAX       , // sentinel value
+  };
+  struct KVMFRFrame
+  {
+    uint8_t     flags;       // KVMFR_FRAME_FLAGS
+    FrameType   type;        // the frame data type
+    uint32_t    width;       // the width
+    uint32_t    height;      // the height
+    uint32_t    stride;      // the row stride (zero if compressed data)
+    uint32_t    pitch;       // the row pitch  (stride in bytes or the compressed frame size)
+    uint64_t    dataPos;     // offset to the frame
+    uint8_t     rotate;      // the frame rotation
+  };
+  struct KVMFRHeader
+  {
+    char        magic[sizeof(KVMFR_HEADER_MAGIC)];
+    uint32_t    version;     // version of this structure
+    uint8_t     flags;       // KVMFR_HEADER_FLAGS
+    KVMFRFrame  frame;       // the frame information
+  };
   struct app
   {
     KVMFRHeader * shmHeader;
