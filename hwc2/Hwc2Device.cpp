@@ -67,10 +67,6 @@ Error Hwc2Device::init() {
   }
 #endif
 
-#ifdef ENABLE_HWC_VNC
-  VncDisplay::addVncDisplayObserver(this);
-#endif
-
   return Error::None;
 }
 

@@ -11,10 +11,6 @@
 #include "IRemoteDevice.h"
 #include "display_protocol.h"
 
-#ifdef ENABLE_HWC_VNC
-#include "VncDisplay.h"
-#endif
-
 #ifdef ENABLE_HWC_UIO
 #include "UioDisplay.h"
 #endif
@@ -138,10 +134,6 @@ class Hwc2Display : public DisplayEventListener {
 #ifdef ENABLE_LAYER_DUMP
   int mFrameToDump = 0;
   bool mDebugRotationTransition = false;
-#endif
-
-#ifdef ENABLE_HWC_VNC
-  VncDisplay* mVncDisplay = nullptr;
 #endif
 
 #ifdef ENABLE_HWC_UIO
