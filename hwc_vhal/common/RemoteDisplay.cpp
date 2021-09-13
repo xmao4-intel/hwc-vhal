@@ -135,6 +135,20 @@ int RemoteDisplay::getConfigs() {
   return 0;
 }
 
+int RemoteDisplay::sendDisplayPortReq() {
+  ALOGV("RemoteDisplay(%d)::%s", mSocketFd, __func__);
+  display_event_t req;
+
+  memset(&req, 0, sizeof(req));
+  req.type = DD_EVENT_DISPPORT_REQ;
+  req.size = sizeof(req);
+  if (_send(&req, sizeof(req)) < 0) {
+    ALOGE("%s:%d: Can't send display port request\n", __func__, __LINE__);
+    return -1;
+  }
+  return 0;
+}
+
 int RemoteDisplay::createBuffer(buffer_handle_t buffer) {
   ALOGV("RemoteDisplay(%d)::%s", mSocketFd, __func__);
 
@@ -367,13 +381,35 @@ int RemoteDisplay::onDisplayInfoAck(const display_event_t& ev) {
     ALOGE("%s:%d: Can't send display info request\n", __func__, __LINE__);
     return -1;
   }
-  mPort = info.port;
   mWidth = info.width;
   mHeight = info.height;
   mFramerate = info.fps;
   mXDpi = info.xdpi;
   mYDpi = info.ydpi;
   mDisplayFlags.value = info.flags;
+
+
+  if (property_get_bool("ro.fw.concurrent.user", false)) {
+    sendDisplayPortReq();
+  } else {
+    if (mStatusListener) {
+      mStatusListener->onConnect(mSocketFd);
+    }
+  }
+  return 0;
+}
+
+int RemoteDisplay::onDisplayPortAck(const display_event_t& ev) {
+  ALOGV("RemoteDisplay(%d)::%s", mSocketFd, __func__);
+
+  display_port_t info;
+  int ret = _recv(&info, sizeof(info));
+  if (ret < 0) {
+    ALOGE("%s:%d: Can't receive display port ack\n", __func__, __LINE__);
+    return -1;
+  }
+  mPort = info.port;
+  ALOGD("Received display port: %d in %s", mPort, __func__);
 
   if (mStatusListener) {
     mStatusListener->onConnect(mSocketFd);
@@ -435,6 +471,9 @@ int RemoteDisplay::onDisplayEvent() {
   switch (ev.type) {
     case DD_EVENT_DISPINFO_ACK:
       onDisplayInfoAck(ev);
+      break;
+    case DD_EVENT_DISPPORT_ACK:
+      onDisplayPortAck(ev);
       break;
     case DD_EVENT_DISPLAY_ACK:
       onDisplayBufferAck(ev);

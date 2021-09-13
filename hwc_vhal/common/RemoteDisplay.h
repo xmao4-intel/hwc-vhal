@@ -35,6 +35,7 @@ class RemoteDisplay {
 
   // requests sent to remote
   int getConfigs();
+  int sendDisplayPortReq();
   int createBuffer(buffer_handle_t buffer);
   int removeBuffer(buffer_handle_t buffer);
   int displayBuffer(buffer_handle_t buffer);
@@ -52,6 +53,7 @@ class RemoteDisplay {
   int _recv(void* buf, size_t n);
   int _sendFds(int* pfd, size_t fdlen);
   int onDisplayInfoAck(const display_event_t& ev);
+  int onDisplayPortAck(const display_event_t& ev);
   int onDisplayBufferAck(const display_event_t& ev);
   int onPresentLayersAck(const display_event_t& ev);
 

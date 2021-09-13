@@ -42,6 +42,10 @@
 #define DD_EVENT_PRESENT_LAYERS_REQ 0x1103
 #define DD_EVENT_PRESENT_LAYERS_ACK 0x1104
 
+#define DD_EVENT_DISPPORT_REQ 0x1700
+#define DD_EVENT_DISPPORT_ACK 0x1701
+
+
 // define framebuffer id as the max
 #define LAYER_ID_FRAMEBUFFER 0xffffffffffffffff
 
@@ -57,7 +61,6 @@ typedef struct _display_flags {
 
 typedef struct _display_info_t {
   unsigned int flags;
-  unsigned int port;
   unsigned int width;
   unsigned int height;
   int stride;
@@ -158,5 +161,15 @@ typedef struct _present_layers_ack_event_t {
   uint32_t numLayers;
   layer_buffer_info_t layers[0];
 } present_layers_ack_event_t;
+
+typedef struct _display_port_t {
+  unsigned int port;
+  unsigned int reserve;
+} display_port_t;
+
+typedef struct _display_port_event_t {
+  display_event_t event;
+  display_port_t dispPort;
+} display_port_event_t;
 
 #endif  // _H_DISPLAY_PROTOCOL_
