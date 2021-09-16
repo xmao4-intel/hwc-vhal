@@ -120,14 +120,16 @@ int RemoteDisplay::getConfigs() {
   ALOGV("RemoteDisplay(%d)::%s", mSocketFd, __func__);
 
   char value[PROPERTY_VALUE_MAX];
-  property_get("ro.container.id", value, "0");
-
   display_event_t req;
 
   memset(&req, 0, sizeof(req));
   req.type = DD_EVENT_DISPINFO_REQ;
   req.size = sizeof(req);
+  property_get("ro.container.id", value, "0");
   req.id = atoi(value);
+  memset(value, 0, sizeof(value));
+  property_get("ro.acg.rnode", value, "0");
+  req.pad = atoi(value);
   if (_send(&req, sizeof(req)) < 0) {
     ALOGE("%s:%d: Can't send display info request\n", __func__, __LINE__);
     return -1;
