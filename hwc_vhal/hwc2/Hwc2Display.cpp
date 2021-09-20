@@ -15,6 +15,7 @@
 #include "BufferDumper.h"
 #endif
 
+#include "BufferMapper.h"
 using namespace HWC2;
 
 //#define DEBUG_LAYER
@@ -50,6 +51,11 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
 
   if (getenv("K8S_ENV_DISPLAY_FPS") != NULL) {
     mFramerate = atoi(getenv("K8S_ENV_DISPLAY_FPS"));
+  }
+
+  if ((getenv("ENV_USE_GFX") != NULL && strcmp(getenv("ENV_USE_GFX"), "true") == 0) ||
+      (getenv("K8S_ENV_USE_GFX") != NULL && strcmp(getenv("K8S_ENV_USE_GFX"), "true") == 0)) {
+    mFullscreenOpt = true;
   }
 
   if (w && h) {
@@ -397,6 +403,7 @@ Error Hwc2Display::present(int32_t* retireFence) {
       }
       if (target) {
         mRemoteDisplay->displayBuffer(target);
+#if 0
         updateRotation();
 #ifdef VIDEO_STREAMING_OPT
         std::vector<layer_info_t> layerInfos;
@@ -411,6 +418,7 @@ Error Hwc2Display::present(int32_t* retireFence) {
         for (auto& layer : mLayers) {
           layer.second.setUnchanged();
         }
+#endif
 #endif
       }
     }
@@ -633,8 +641,10 @@ bool Hwc2Display::checkFullScreenMode() {
     if(NULL != strstr(layer.name(),"SurfaceView"))
       surfaceViewCount++;
 
+    int32_t new_width = (layer.info().srcCrop.right +3) & (~3);
+    int32_t new_height = (layer.info().srcCrop.bottom +3) & (~3);
     //if only have one landscape layer, consider it fullscreen mode
-    if (1 == mLayers.size() && (layer.info().srcCrop.right > layer.info().srcCrop.bottom))
+    if (1 == mLayers.size() && (new_width == mWidth && new_height == mHeight))
       oneLandscapeLayer = true;
   }
 
@@ -642,7 +652,15 @@ bool Hwc2Display::checkFullScreenMode() {
   if (mLayers.size() == surfaceViewCount && surfaceViewCount <= 2)
     hasAppUi = false;
 
-  return oneLandscapeLayer || !hasAppUi;
+  int32_t format = -1;
+  if (1 == mLayers.size()) {
+    for (auto& l : mLayers) {
+        Hwc2Layer& layer = l.second;
+        BufferMapper::getMapper().getBufferFormat(layer.buffer(), format);
+    }
+  }
+  //ALOGI("buf format(%d)\n", format);
+  return (oneLandscapeLayer || !hasAppUi) && (format == HAL_PIXEL_FORMAT_RGBA_8888 || format == HAL_PIXEL_FORMAT_RGBX_8888);
 }
 
 void Hwc2Display::exitFullScreenMode() {
@@ -662,14 +680,14 @@ Error Hwc2Display::validate(uint32_t* numTypes, uint32_t* numRequests) {
   *numTypes = 0;
   *numRequests = 0;
 
-#ifdef VIDEO_STREAMING_OPT
+if (mFullscreenOpt) {
   bool tmp = checkFullScreenMode();
   if(tmp != mFullScreenMode) {
     mFullScreenMode = tmp;
     if (mFullScreenMode == false)
       exitFullScreenMode();
   }
-#endif
+}
 
   for (auto& l : mLayers) {
     Hwc2Layer& layer = l.second;

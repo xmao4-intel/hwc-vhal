@@ -126,6 +126,7 @@ class Hwc2Display : public DisplayEventListener {
   std::vector<buffer_handle_t> mFbtBuffers;
   std::map<int64_t,buffer_handle_t> mFullScreenBuffers;
   bool mFullScreenMode = false;
+  bool mFullscreenOpt = false;
 
   buffer_handle_t mOutputBuffer = nullptr;
   int mOutputBufferFenceFd = -1;
