@@ -32,6 +32,8 @@ Hwc2Device::Hwc2Device() {
 Error Hwc2Device::init() {
   ALOGV("%s", __func__);
 
+  concurrent_user = property_get_bool("ro.fw.concurrent.user", false);
+  primary_reconfig = property_get_bool("ro.hwc_vhal.primary_reconfig", false);
   mRemoteDisplayMgr = std::unique_ptr<RemoteDisplayMgr>(new RemoteDisplayMgr());
   if (!mRemoteDisplayMgr) {
     ALOGE("Failed to create remote display manager, out of memory");
@@ -59,12 +61,23 @@ int Hwc2Device::addRemoteDisplay(RemoteDisplay* rd) {
 
   if (mDisplays.find(kPrimayDisplay) != mDisplays.end() &&
       mDisplays.at(kPrimayDisplay)->attachable() &&
-      rd->port() == 0) {
+      (!concurrent_user || rd->port() == 0)) {
     ALOGD("%s: attach to %" PRIu64, __func__, kPrimayDisplay);
+
+    int old_width = mDisplays.at(kPrimayDisplay)->width();
+    int old_height = mDisplays.at(kPrimayDisplay)->height();
+    bool reconfig = primary_reconfig &&
+        (old_width != rd->width() || old_height != rd->height());
 
     rd->setDisplayId(kPrimayDisplay);
     mDisplays.at(kPrimayDisplay)->attach(rd);
-    onRefresh(kPrimayDisplay);
+    if (reconfig) {
+      // Just resend hotplug to ask system to update primary config
+      ALOGD("Reconfig primary to %dx%d", rd->width(), rd->height());
+      onHotplug(kPrimayDisplay, HWC2_CONNECTION_CONNECTED);
+    } else {
+      onRefresh(kPrimayDisplay);
+    }
   } else {
     auto id = sNextId++;
     ALOGD("%s: add new display %" PRIu64, __func__, id);

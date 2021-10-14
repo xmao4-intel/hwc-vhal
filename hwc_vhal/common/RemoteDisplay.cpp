@@ -394,6 +394,7 @@ int RemoteDisplay::onDisplayInfoAck(const display_event_t& ev) {
   if (property_get_bool("ro.fw.concurrent.user", false)) {
     sendDisplayPortReq();
   } else {
+    mPort = mSocketFd;
     if (mStatusListener) {
       mStatusListener->onConnect(mSocketFd);
     }

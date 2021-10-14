@@ -133,6 +133,8 @@ class Hwc2Device : public hwc2_device_t, public IRemoteDevice {
   static std::atomic<hwc2_display_t> sNextId;
   bool registed = false;
   bool server_mode = false;
+  bool concurrent_user = false;
+  bool primary_reconfig = false;
   const int kMaxDisplayCount = 100;
   const hwc2_display_t kPrimayDisplay = 0;
 
