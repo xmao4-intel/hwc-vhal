@@ -118,7 +118,7 @@ class Hwc2Display : public DisplayEventListener {
   int32_t mPort = 0;
   int32_t mWidth = 1280;
   int32_t mHeight = 720;
-  int32_t mFramerate = 60;
+  int32_t mFramerate = 30;
   int32_t mXDpi = 240;
   int32_t mYDpi = 240;
   uint32_t mTransform = 0;
@@ -141,6 +141,7 @@ class Hwc2Display : public DisplayEventListener {
   uint32_t mMode = 0;
   int mReleaseFence = -1;
 
+  int64_t mLastPresentTime = 0;
   int mFrameNum = 0;
   Hwc2Device& mDevice;
   HWC2::Vsync mVsyncEnabled;

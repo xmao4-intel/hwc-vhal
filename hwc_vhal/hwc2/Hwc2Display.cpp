@@ -55,7 +55,11 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
 
   if ((getenv("ENV_USE_GFX") != NULL && strcmp(getenv("ENV_USE_GFX"), "true") == 0) ||
       (getenv("K8S_ENV_USE_GFX") != NULL && strcmp(getenv("K8S_ENV_USE_GFX"), "true") == 0)) {
-    mFullscreenOpt = true;
+    char value[256];
+    property_get("ro.hardware.hwcomposer.bypass", value, "false");
+    if (0 == strcmp("true", value)) {
+      mFullscreenOpt = true;
+    }
   }
 
   if (w && h) {
@@ -475,6 +479,15 @@ Error Hwc2Display::present(int32_t* retireFence) {
 #endif
 
   mFrameNum++;
+  if (getenv("ENV_DUMP_GFX_FPS") != NULL && strcmp(getenv("ENV_DUMP_GFX_FPS"), "true") == 0 && (mFrameNum % mFramerate == 0)) {
+    int64_t currentNS = systemTime(SYSTEM_TIME_MONOTONIC);
+    int64_t lastNS = mLastPresentTime;
+    float deltaMS = (currentNS - lastNS) / 1000000.0;
+    float fps = 1000.0 * mFramerate / deltaMS;
+    ALOGI("total mFrameNum = %d, fps = %.2f\n", mFrameNum, fps);
+    mLastPresentTime = currentNS;
+  }
+
   *retireFence = -1;
   return Error::None;
 }
@@ -491,7 +504,6 @@ Error Hwc2Display::setClientTarget(buffer_handle_t target,
                                    int32_t dataspace,
                                    hwc_region_t damage) {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
-
   mFbTarget = target;
   if (mFbAcquireFenceFd >= 0) {
     close(mFbAcquireFenceFd);
