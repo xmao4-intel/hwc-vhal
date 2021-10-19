@@ -53,13 +53,9 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
     mFramerate = atoi(getenv("K8S_ENV_DISPLAY_FPS"));
   }
 
-  if ((getenv("ENV_USE_GFX") != NULL && strcmp(getenv("ENV_USE_GFX"), "true") == 0) ||
-      (getenv("K8S_ENV_USE_GFX") != NULL && strcmp(getenv("K8S_ENV_USE_GFX"), "true") == 0)) {
-    char value[256];
-    property_get("ro.hardware.hwcomposer.bypass", value, "false");
-    if (0 == strcmp("true", value)) {
-      mFullscreenOpt = true;
-    }
+  property_get("ro.hwc_vhal.bypass", value, "false");
+  if (0 == strcmp("true", value)) {
+    mFullscreenOpt = true;
   }
 
   if (w && h) {
