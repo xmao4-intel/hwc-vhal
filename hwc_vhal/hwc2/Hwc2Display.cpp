@@ -695,6 +695,19 @@ if (mFullscreenOpt) {
     if (mFullScreenMode == false)
       exitFullScreenMode();
   }
+
+  // notify streamer to clear old buffers when layer resizes/reallocate new buffers
+  if ((tmp == true) && (1 == mLayers.size())) {
+    for (auto& layer : mLayers) {
+      if (layer.second.changed() == true) {
+        ALOGI("Layer has geometry change, so clear the fullscreen buffer.\n");
+        exitFullScreenMode();
+      }
+    } // end of for
+    for (auto& layer : mLayers) {
+      layer.second.setUnchanged();
+    }
+  }
 }
 
   for (auto& l : mLayers) {
