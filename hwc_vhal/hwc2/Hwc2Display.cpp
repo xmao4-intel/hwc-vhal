@@ -98,7 +98,7 @@ int Hwc2Display::attach(RemoteDisplay* rd) {
   mPort = (mDisplayID != kPrimayDisplay) ?  mRemoteDisplay->port() : 0;
   mWidth = mRemoteDisplay->width();
   mHeight = mRemoteDisplay->height();
-  mFramerate = mRemoteDisplay->fps();
+  //mFramerate = mRemoteDisplay->fps();
   mXDpi = mRemoteDisplay->xdpi();
   mYDpi = mRemoteDisplay->ydpi();
 
