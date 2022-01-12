@@ -133,6 +133,17 @@ int RemoteDisplayMgr::onConnect(int fd) {
   return 0;
 }
 
+int RemoteDisplayMgr::onSetMode(int fd) {
+  std::unique_lock<std::mutex> lck(mConnectionMutex);
+
+  if (mRemoteDisplays.find(fd) != mRemoteDisplays.end()) {
+    ALOGI("Remote Display %d setMode", fd);
+    mHwcDevice->setMode(&mRemoteDisplays.at(fd));
+  }
+  mClientConnected.notify_all();
+  return 0;
+}
+
 int RemoteDisplayMgr::onDisconnect(int fd) {
   ALOGI("Remote Display %d disconnected", fd);
 

@@ -56,6 +56,7 @@ class RemoteDisplay {
   int onDisplayPortAck(const display_event_t& ev);
   int onDisplayBufferAck(const display_event_t& ev);
   int onPresentLayersAck(const display_event_t& ev);
+  int onSetMode(const display_event_t& ev);
 
  private:
   bool mDisconnected = false;

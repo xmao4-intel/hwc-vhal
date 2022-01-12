@@ -297,6 +297,16 @@ Error Hwc2Display::getAttribute(hwc2_config_t config,
 Error Hwc2Display::getConfigs(uint32_t* num_configs, hwc2_config_t* configs) {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
 
+  for (auto buffer : mFullScreenBuffers) {
+    mRemoteDisplay->removeBuffer(buffer.second);
+  }
+  mFullScreenBuffers.clear();
+
+  for (auto buffer : mFbtBuffers) {
+    mRemoteDisplay->removeBuffer(buffer);
+  }
+  mFbtBuffers.clear();
+
   *num_configs = 1;
   if (configs) {
     configs[0] = mConfig;

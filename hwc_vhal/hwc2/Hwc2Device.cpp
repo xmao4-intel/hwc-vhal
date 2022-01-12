@@ -53,6 +53,20 @@ Error Hwc2Device::init() {
   return Error::None;
 }
 
+int Hwc2Device::setMode(RemoteDisplay* rd) {
+  if (!rd)
+    return -1;
+
+  std::unique_lock<std::mutex> lk(mDisplayMutex);
+
+  hwc2_display_t id = rd->getDisplayId();
+  mDisplays.at(id)->attach(rd);
+  ALOGI("setMode: Display % " PRId64 " to %dx%d", id, rd->width(), rd->height());
+  onHotplug(id, HWC2_CONNECTION_CONNECTED);
+
+  return 0;
+}
+
 int Hwc2Device::addRemoteDisplay(RemoteDisplay* rd) {
   if (!rd)
     return -1;

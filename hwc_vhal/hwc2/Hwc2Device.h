@@ -39,6 +39,7 @@ class Hwc2Device : public hwc2_device_t, public IRemoteDevice {
   HWC2::Error onRefresh(hwc2_display_t disp);
 
   // IRemoteDevice
+  int setMode(RemoteDisplay* rd) override;
   int addRemoteDisplay(RemoteDisplay* rd) override;
   int removeRemoteDisplay(RemoteDisplay* rd) override;
   int getMaxRemoteDisplayCount() override;

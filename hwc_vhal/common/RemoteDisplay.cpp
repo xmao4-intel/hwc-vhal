@@ -420,6 +420,28 @@ int RemoteDisplay::onDisplayPortAck(const display_event_t& ev) {
   return 0;
 }
 
+int RemoteDisplay::onSetMode(const display_event_t& ev) {
+  ALOGV("RemoteDisplay(%d)::%s", mSocketFd, __func__);
+
+  display_info_t info;
+  int ret = _recv(&info, sizeof(info));
+  if (ret < 0) {
+    ALOGE("%s:%d: Can't receive setMode\n", __func__, __LINE__);
+    return -1;
+  }
+
+  uint32_t old_Width = mWidth;
+  uint32_t old_Height = mHeight;
+
+  mWidth = info.width;
+  mHeight = info.height;
+
+  if ((mStatusListener) && ((mWidth != old_Width)||(mHeight != old_Height))) {
+    mStatusListener->onSetMode(mSocketFd);
+  }
+  return 0;
+}
+
 int RemoteDisplay::onDisplayBufferAck(const display_event_t& ev) {
   ALOGV("RemoteDisplay(%d)::%s", mSocketFd, __func__);
 
@@ -483,6 +505,9 @@ int RemoteDisplay::onDisplayEvent() {
       break;
     case DD_EVENT_PRESENT_LAYERS_ACK:
       onPresentLayersAck(ev);
+      break;
+    case DD_EVENT_SET_MODE:
+      onSetMode(ev);
       break;
     default: {
       char buf[1024];

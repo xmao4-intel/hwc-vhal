@@ -8,6 +8,7 @@ class RemoteDisplay;
 struct IRemoteDevice {
   virtual ~IRemoteDevice() {}
   virtual int addRemoteDisplay(RemoteDisplay* rd) = 0;
+  virtual int setMode(RemoteDisplay* rd) = 0;
   virtual int removeRemoteDisplay(RemoteDisplay* rd) = 0;
   virtual int getMaxRemoteDisplayCount() = 0;
   virtual int getRemoteDisplayCount() = 0;
@@ -16,6 +17,7 @@ struct IRemoteDevice {
 struct DisplayStatusListener {
   virtual ~DisplayStatusListener(){};
   virtual int onConnect(int fd) = 0;
+  virtual int onSetMode(int fd) = 0;
   virtual int onDisconnect(int fd) = 0;
 };
 

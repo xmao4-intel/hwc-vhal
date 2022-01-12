@@ -45,6 +45,7 @@
 #define DD_EVENT_DISPPORT_REQ 0x1700
 #define DD_EVENT_DISPPORT_ACK 0x1701
 
+#define DD_EVENT_SET_MODE 0x1800
 
 // define framebuffer id as the max
 #define LAYER_ID_FRAMEBUFFER 0xffffffffffffffff

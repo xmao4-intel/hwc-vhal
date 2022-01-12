@@ -23,6 +23,7 @@ class RemoteDisplayMgr : public DisplayStatusListener {
   // DisplayStatusListener
   int onConnect(int fd) override;
   int onDisconnect(int fd) override;
+  int onSetMode(int fd) override;
 
  private:
   int addRemoteDisplay(int fd);
