@@ -141,6 +141,7 @@ class Hwc2Display : public DisplayEventListener {
   uint32_t mMode = 0;
   int mReleaseFence = -1;
 
+  bool mShowCurrentFrame = false;
   int64_t mLastPresentTime = 0;
   int mFrameNum = 0;
   Hwc2Device& mDevice;

@@ -31,6 +31,7 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
   ALOGD("%s", __func__);
   mDisplayID = id;
 
+  mShowCurrentFrame = false;
   int w = 0, h = 0;
 
   char value[PROPERTY_VALUE_MAX];
@@ -412,7 +413,8 @@ Error Hwc2Display::present(int32_t* retireFence) {
         }
       }
       if (target) {
-        mRemoteDisplay->displayBuffer(target);
+        if (mShowCurrentFrame)
+          mRemoteDisplay->displayBuffer(target);
 #if 0
         updateRotation();
 #ifdef VIDEO_STREAMING_OPT
@@ -494,6 +496,7 @@ Error Hwc2Display::present(int32_t* retireFence) {
     mLastPresentTime = currentNS;
   }
 
+  mShowCurrentFrame = false;
   *retireFence = -1;
   return Error::None;
 }
@@ -694,6 +697,18 @@ void Hwc2Display::exitFullScreenMode() {
 
 Error Hwc2Display::validate(uint32_t* numTypes, uint32_t* numRequests) {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
+
+  // check if there's any layer occupying the 1/2 display, if not, wo shouldn't show this frame
+  for (auto& l : mLayers) {
+    Hwc2Layer& layer = l.second;
+    if (((layer.info().dstFrame.right - layer.info().dstFrame.left) > mWidth/2) && ((layer.info().dstFrame.bottom - layer.info().dstFrame.top) > mHeight/2)) {
+      mShowCurrentFrame = true;
+      break;
+    }
+  }
+  if (false == mShowCurrentFrame) {
+    ALOGW("there's no any layer occupying the 1/2 display !!!\n");
+  }
 
   *numTypes = 0;
   *numRequests = 0;
