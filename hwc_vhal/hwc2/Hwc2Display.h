@@ -90,6 +90,15 @@ class Hwc2Display : public DisplayEventListener {
   bool checkFullScreenMode();
   void exitFullScreenMode();
 
+  // Handle Gralloc buffer retain, release event
+  static void onGrallocCallbackHook(void* ctx, int event, const buffer_handle_t buffer) {
+    auto d = static_cast<Hwc2Display *>(ctx);
+    if (d) {
+      d->onGrallocCallback(event, buffer);
+    }
+  }
+  void onGrallocCallback(int event, const buffer_handle_t buffer);
+
   // Generate sw vsync signal
   class VsyncThread : public android::Thread {
   public:

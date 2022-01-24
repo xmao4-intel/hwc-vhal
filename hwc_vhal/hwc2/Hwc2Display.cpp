@@ -75,6 +75,8 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
   // }
 #endif
   mVsyncThread.run("", -19 /* ANDROID_PRIORITY_URGENT_AUDIO */);
+  BufferMapper::getMapper().addCallback(onGrallocCallbackHook, this);
+
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -685,6 +687,7 @@ bool Hwc2Display::checkFullScreenMode() {
 }
 
 void Hwc2Display::exitFullScreenMode() {
+  ALOGD("Exit fullscreen mode");
 
   if (mRemoteDisplay) {
     for (auto buffer : mFullScreenBuffers) {
@@ -694,6 +697,30 @@ void Hwc2Display::exitFullScreenMode() {
   }
 }
 
+void Hwc2Display::onGrallocCallback(int event, const buffer_handle_t buffer) {
+  switch (event) {
+    case GRALLOC_EVENT_ALLOCATE:
+      //ALOGD("%s: buffer %p allocated", __func__, buffer);
+      break;
+    case GRALLOC_EVENT_RETAIN:
+      //ALOGD("%s: buffer %p retained", __func__, buffer);
+      break;
+    case GRALLOC_EVENT_RELEASE:
+      //ALOGD("%s: buffer %p released", __func__, buffer);
+      // todo: move handle to main thread to avoid race condition
+      for (auto it : mFullScreenBuffers) {
+        if (it.second == buffer) {
+          ALOGD("%s: fullscreen buffer %p released", __func__, buffer);
+          exitFullScreenMode();
+          break;
+        }
+      }
+      break;
+    default:
+      ALOGD("%s: unknown gralloc event with buffer %p", __func__, buffer);
+      break;
+  }
+}
 
 Error Hwc2Display::validate(uint32_t* numTypes, uint32_t* numRequests) {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
@@ -719,6 +746,9 @@ if (mFullscreenOpt) {
     mFullScreenMode = tmp;
     if (mFullScreenMode == false)
       exitFullScreenMode();
+    else {
+      ALOGD("Enter fullscreen mode");
+    }
   }
 
   // notify streamer to clear old buffers when layer resizes/reallocate new buffers

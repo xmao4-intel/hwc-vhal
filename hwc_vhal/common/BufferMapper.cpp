@@ -41,6 +41,8 @@ int BufferMapper::getGrallocDevice() {
         mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_GET_FORMAT));
     pfnGetStride = (GRALLOC1_PFN_GET_STRIDE)(
         mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_GET_STRIDE));
+    pfnAddCallback = (GRALLOC1_PFN_ADD_CALLBACK)(
+      mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_ADD_CALLBACK));
   }
   return 0;
 }
@@ -135,4 +137,10 @@ int BufferMapper::unlockBuffer(buffer_handle_t b) {
     close(releaseFenceFd);
   }
   return 0;
+}
+int BufferMapper::addCallback(gralloc_cb cb, void* ctx) {
+  if (pfnAddCallback) {
+    return pfnAddCallback(mGralloc, cb, ctx);
+  }
+  return -1;
 }

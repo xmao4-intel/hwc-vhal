@@ -5,6 +5,17 @@
 #include <hardware/hwcomposer2.h>
 #include <system/graphics.h>
 
+const int32_t GRALLOC1_FUNCTION_ADD_CALLBACK = 108;
+enum {
+  GRALLOC_EVENT_ALLOCATE  = 0,
+  GRALLOC_EVENT_RETAIN    = 1,
+  GRALLOC_EVENT_RELEASE   = 2,
+};
+
+typedef void (*gralloc_cb)(void* ctx, int event, const buffer_handle_t buffer);
+typedef int32_t /*gralloc1_error_t*/ (*GRALLOC1_PFN_ADD_CALLBACK)(
+    gralloc1_device_t *device,  gralloc_cb cb, void* ctx);
+
 class BufferMapper {
  public:
   ~BufferMapper();
@@ -19,6 +30,7 @@ class BufferMapper {
   int getBufferStride(buffer_handle_t b, uint32_t& s);
   int lockBuffer(buffer_handle_t b, uint8_t*& data, uint32_t& s);
   int unlockBuffer(buffer_handle_t b);
+  int addCallback(gralloc_cb cb, void* ctx);
 
  private:
   BufferMapper();
@@ -31,5 +43,7 @@ class BufferMapper {
   GRALLOC1_PFN_GET_DIMENSIONS pfnGetDimensions = nullptr;
   GRALLOC1_PFN_GET_FORMAT pfnGetFormat = nullptr;
   GRALLOC1_PFN_GET_STRIDE pfnGetStride = nullptr;
+  GRALLOC1_PFN_ADD_CALLBACK pfnAddCallback = nullptr;
+
 };
 #endif
