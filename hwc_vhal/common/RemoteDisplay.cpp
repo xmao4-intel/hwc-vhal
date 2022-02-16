@@ -76,7 +76,7 @@ int RemoteDisplay::_sendFds(int* pfd, size_t fdlen) {
   int count = 0;
   int i = 0;
   struct msghdr msg;
-  struct cmsghdr* p_cmsg;
+  struct cmsghdr* p_cmsg = NULL;
   struct iovec vec;
   char cmsgbuf[CMSG_SPACE(fdlen * sizeof(int))];
   int* p_fds = NULL;
@@ -87,6 +87,9 @@ int RemoteDisplay::_sendFds(int* pfd, size_t fdlen) {
   msg.msg_control = cmsgbuf;
   msg.msg_controllen = sizeof(cmsgbuf);
   p_cmsg = CMSG_FIRSTHDR(&msg);
+  if (p_cmsg == NULL) {
+    return -1;
+  }
   p_cmsg->cmsg_level = SOL_SOCKET;
   p_cmsg->cmsg_type = SCM_RIGHTS;
   p_cmsg->cmsg_len = CMSG_LEN(fdlen * sizeof(int));
@@ -459,14 +462,24 @@ int RemoteDisplay::onDisplayBufferAck(const display_event_t& ev) {
 
 int RemoteDisplay::onPresentLayersAck(const display_event_t& ev) {
   ALOGV("RemoteDisplay(%d)::%s", mSocketFd, __func__);
+  present_layers_ack_event_t ack{};
 
-  present_layers_ack_event_t ack;
-
-  if (_recv(&ack.flags, sizeof(ack) - sizeof(ev)) < 0) {
+  if (_recv(&ack.flags, sizeof(ack.flags)) < 0) {
     ALOGE("RemoteDisplay(%d) failed to receive present layers ack event",
           mSocketFd);
     return -1;
   }
+  if (_recv(&ack.releaseFence, sizeof(ack.releaseFence)) < 0) {
+    ALOGE("RemoteDisplay(%d) failed to receive present layers ack event",
+          mSocketFd);
+    return -1;
+  }
+  if (_recv(&ack.numLayers, sizeof(ack.numLayers)) < 0) {
+    ALOGE("RemoteDisplay(%d) failed to receive present layers ack event",
+          mSocketFd);
+    return -1;
+  }
+
   mDisplayFlags.value = ack.flags;
 
   std::vector<layer_buffer_info_t> layerBuffers;

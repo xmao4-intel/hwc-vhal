@@ -198,7 +198,9 @@ void RemoteDisplayMgr::socketThreadProc() {
   char value[PROPERTY_VALUE_MAX];
   property_get("ro.boot.container.id", value, "0");
   char kServerSockId[50];
-  if (getenv("K8S_ENV") != NULL && strcmp(getenv("K8S_ENV"), "true") == 0)
+  char* p_env = NULL;
+  p_env = getenv("K8S_ENV");
+  if ((p_env != NULL) && strcmp(p_env, "true") == 0)
     sprintf(kServerSockId,"%s","/conn/hwc-sock");
   else
     sprintf(kServerSockId,"%s%s","/ipc/hwc-sock",value);

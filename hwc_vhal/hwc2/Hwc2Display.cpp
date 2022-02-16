@@ -33,11 +33,14 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
 
   mShowCurrentFrame = false;
   int w = 0, h = 0;
-
+  char * p_w_env = NULL;
+  char * p_h_env = NULL;
   char value[PROPERTY_VALUE_MAX];
-  if (getenv("K8S_ENV_DISPLAY_RESOLUTION_X") != NULL && getenv("K8S_ENV_DISPLAY_RESOLUTION_Y") != NULL) {
-    w = atoi(getenv("K8S_ENV_DISPLAY_RESOLUTION_X"));
-    h = atoi(getenv("K8S_ENV_DISPLAY_RESOLUTION_Y"));
+  p_w_env = getenv("K8S_ENV_DISPLAY_RESOLUTION_X");
+  p_h_env = getenv("K8S_ENV_DISPLAY_RESOLUTION_Y");
+  if (p_w_env != NULL && p_h_env!= NULL) {
+    w = atoi(p_w_env);
+    h = atoi(p_h_env);
     ALOGD("Display %" PRIu64 " default size <%d %d> from environment setting", id,
           w, h);
   } else if (property_get("sys.display.size", value, nullptr)) {
@@ -50,8 +53,10 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
     ALOGD("Display %" PRIu64 " default size <%d %d> from debug fs", id, w, h);
   }
 
-  if (getenv("K8S_ENV_DISPLAY_FPS") != NULL) {
-    mFramerate = atoi(getenv("K8S_ENV_DISPLAY_FPS"));
+  char * p_fps_env = NULL;
+  p_fps_env = getenv("K8S_ENV_DISPLAY_FPS");
+  if(p_fps_env != NULL) {
+    mFramerate = atoi(p_fps_env);
   }
 
   property_get("ro.hwc_vhal.bypass", value, "false");
@@ -489,7 +494,9 @@ Error Hwc2Display::present(int32_t* retireFence) {
 #endif
 
   mFrameNum++;
-  if (getenv("ENV_DUMP_GFX_FPS") != NULL && strcmp(getenv("ENV_DUMP_GFX_FPS"), "true") == 0 && (mFrameNum % mFramerate == 0)) {
+  char* p_env_dump = NULL;
+  p_env_dump = getenv("ENV_DUMP_GFX_FPS");
+  if ((p_env_dump != NULL) && strcmp(p_env_dump, "true") == 0 && (mFrameNum % mFramerate == 0)) {
     int64_t currentNS = systemTime(SYSTEM_TIME_MONOTONIC);
     int64_t lastNS = mLastPresentTime;
     float deltaMS = (currentNS - lastNS) / 1000000.0;
@@ -575,6 +582,7 @@ static bool isValid(Vsync enable) {
     case Vsync::Disable: return true;
     case Vsync::Invalid: return false;
   }
+  return false;
 }
 
 Error Hwc2Display::setVsyncEnabled(int32_t enabled) {
