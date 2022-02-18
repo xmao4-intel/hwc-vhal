@@ -30,6 +30,10 @@ int BufferMapper::getGrallocDevice() {
     return -1;
   }
 
+  if (mGralloc->common.version != HARDWARE_MODULE_API_VERSION(1, 0)) {
+      ALOGE("This is Gralloc0, dont support getFunction API.\n");
+      return -1;
+  }
   if (mGralloc) {
     pfnLock = (GRALLOC1_PFN_LOCK)(
         mGralloc->getFunction(mGralloc, GRALLOC1_FUNCTION_LOCK));
