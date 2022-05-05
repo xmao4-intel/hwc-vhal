@@ -672,10 +672,8 @@ bool Hwc2Display::checkFullScreenMode() {
     if(NULL != strstr(layer.name(),"SurfaceView"))
       surfaceViewCount++;
 
-    int32_t new_width = (layer.info().srcCrop.right +3) & (~3);
-    int32_t new_height = (layer.info().srcCrop.bottom +3) & (~3);
     //if only have one landscape layer, consider it fullscreen mode
-    if (1 == mLayers.size() && (new_width == mWidth && new_height == mHeight))
+    if (layer.buffer() != nullptr && 1 == mLayers.size() && layer.info().transform == 0)
       oneLandscapeLayer = true;
   }
 
