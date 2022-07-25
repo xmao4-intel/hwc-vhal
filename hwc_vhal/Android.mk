@@ -108,12 +108,14 @@ endif
 LOCAL_C_INCLUDES += \
         $(LOCAL_PATH) \
         $(LOCAL_PATH)/common \
+        system/core/libsync/include \
 
 LOCAL_SHARED_LIBRARIES := \
         liblog \
         libcutils \
         libutils \
         libhardware \
+        libsync \
 
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE := hwcomposer.intel_sw

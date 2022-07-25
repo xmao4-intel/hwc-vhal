@@ -32,6 +32,7 @@ class Hwc2Layer {
   char* name() { return mInfo.name; }
   uint32_t zOrder() { return mZOrder; }
   buffer_handle_t buffer() { return mBuffer; }
+  int32_t acquireFence() { return mAcquireFence; }
   const std::set<buffer_handle_t>& buffers() const { return mBuffers; }
 
   // Layer hooks

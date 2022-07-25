@@ -5,6 +5,7 @@
 
 #include <cutils/properties.h>
 #include <cutils/log.h>
+#include <sync/sync.h>
 
 #include "Hwc2Display.h"
 #include "LocalDisplay.h"
@@ -394,18 +395,21 @@ Error Hwc2Display::present(int32_t* retireFence) {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
 
   buffer_handle_t target = nullptr;
+  int32_t acquireFence = -1;
   if (mRemoteDisplay) {
     if (mMode == 0 || mMode == 2) {
       if (!mFullScreenMode) {
         target = mFbTarget;
+        acquireFence = mFbAcquireFenceFd;
       } else {
         bool isNew = true;
-	uint32_t zOrder = 0;
+        uint32_t zOrder = 0;
         for (auto& l : mLayers) {
           Hwc2Layer& layer = l.second;
-	  if ( layer.zOrder() <= zOrder) {
+          if (layer.zOrder() <= zOrder) {
             zOrder = layer.zOrder();
-	    target = layer.buffer();
+            target = layer.buffer();
+            acquireFence = layer.acquireFence();
 	  }
         }
 
@@ -420,8 +424,18 @@ Error Hwc2Display::present(int32_t* retireFence) {
         }
       }
       if (target) {
-        if (mShowCurrentFrame)
+        if (mShowCurrentFrame) {
+          if (acquireFence >= 0) {
+            int error = sync_wait(acquireFence, 1000);
+            if (error < 0) {
+              ALOGE("%s: fence %d, error errno = %d, desc = %s",
+                    __FUNCTION__, acquireFence, errno, strerror(errno));
+            }
+          } else {
+            ALOGE("%s: no fence", __FUNCTION__);
+          }
           mRemoteDisplay->displayBuffer(target);
+        }
 #if 0
         updateRotation();
 #ifdef VIDEO_STREAMING_OPT
