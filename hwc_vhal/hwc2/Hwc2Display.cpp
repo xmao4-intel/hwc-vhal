@@ -26,6 +26,8 @@ using namespace HWC2;
 #define LAYER_TRACE(...)
 #endif
 
+#define HAL_PIXEL_FORMAT_INTEL_NV12_TILED     0x100
+
 Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
   : mDevice(device),
     mVsyncThread(*this) {
@@ -63,6 +65,11 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
   property_get("ro.hwc_vhal.bypass", value, "false");
   if (0 == strcmp("true", value)) {
     mFullscreenOpt = true;
+  }
+
+  property_get("ro.hwc_vhal.video_bypass", value, "false");
+  if (0 == strcmp("true", value)) {
+    mEnableVideoBypass = true;
   }
 
   if (w && h) {
@@ -397,88 +404,27 @@ Error Hwc2Display::present(int32_t* retireFence) {
   buffer_handle_t target = nullptr;
   int32_t acquireFence = -1;
   if (mRemoteDisplay) {
-    if (mMode == 0 || mMode == 2) {
-      if (!mFullScreenMode) {
-        target = mFbTarget;
-        acquireFence = mFbAcquireFenceFd;
-      } else {
-        bool isNew = true;
-        uint32_t zOrder = 0;
-        for (auto& l : mLayers) {
-          Hwc2Layer& layer = l.second;
-          if (layer.zOrder() <= zOrder) {
-            zOrder = layer.zOrder();
-            target = layer.buffer();
-            acquireFence = layer.acquireFence();
-	  }
-        }
-
-        for (auto appTarget : mFullScreenBuffers) {
-          if (appTarget.second == target) {
-	    isNew = false;
-          }
-        }
-        if (isNew && target != nullptr) {
-          mFullScreenBuffers.insert(std::make_pair(((int64_t)target), target));
-          mRemoteDisplay->createBuffer(target);
-        }
-      }
-      if (target) {
-        if (mShowCurrentFrame) {
-          if (acquireFence >= 0) {
-            int error = sync_wait(acquireFence, 1000);
-            if (error < 0) {
-              ALOGE("%s: fence %d, error errno = %d, desc = %s",
-                    __FUNCTION__, acquireFence, errno, strerror(errno));
-            }
-          } else {
-            ALOGE("%s: no fence", __FUNCTION__);
-          }
-          mRemoteDisplay->displayBuffer(target);
-        }
-#if 0
-        updateRotation();
-#ifdef VIDEO_STREAMING_OPT
-        std::vector<layer_info_t> layerInfos;
-        for (auto& layer : mLayers) {
-          if (layer.second.changed()) {
-            layerInfos.push_back(layer.second.info());
-          }
-        }
-        if (layerInfos.size()) {
-          mRemoteDisplay->updateLayers(layerInfos);
-        }
-        for (auto& layer : mLayers) {
-          layer.second.setUnchanged();
-        }
-#endif
-#endif
+    if (!mFullScreenMode) {
+      target = mFbTarget;
+      acquireFence = mFbAcquireFenceFd;
+    } else {
+      target = mBypassLayer->buffer();
+      acquireFence = mBypassLayer->acquireFence();
+       if (mFullScreenBuffers.find((int64_t)target) == mFullScreenBuffers.end()) {
+        mFullScreenBuffers.insert(std::make_pair(((int64_t)target), target));
+        mRemoteDisplay->createBuffer(target);
       }
     }
-    if (mMode > 0) {
-      bool forceUpdateAll = false;
-      std::vector<layer_info_t> layerInfos;
-      for (auto& layer : mLayers) {
-        if (forceUpdateAll || layer.second.changed()) {
-          layerInfos.push_back(layer.second.info());
-        }
-      }
-      if (layerInfos.size()) {
-        mRemoteDisplay->updateLayers(layerInfos);
-      }
 
-      std::vector<layer_buffer_info_t> layerBuffers;
-      for (auto& layer : mLayers) {
-        if (layer.second.bufferChanged()) {
-          layerBuffers.push_back(layer.second.layerBuffer());
+    if (mShowCurrentFrame) {
+      if (acquireFence >= 0) {
+        int error = sync_wait(acquireFence, 1000);
+        if (error < 0) {
+          ALOGE("%s: fence %d, error errno = %d, desc = %s",
+                __FUNCTION__, acquireFence, errno, strerror(errno));
         }
       }
-      if (layerBuffers.size()) {
-        mRemoteDisplay->presentLayers(layerBuffers);
-      }
-      for (auto& layer : mLayers) {
-        layer.second.setUnchanged();
-      }
+      mRemoteDisplay->displayBuffer(target);
     }
   }
 
@@ -677,33 +623,39 @@ bool Hwc2Display::VsyncThread::threadLoop() {
 }
 
 bool Hwc2Display::checkFullScreenMode() {
-  bool hasAppUi = true;
-  bool oneLandscapeLayer = false;
-  uint32_t surfaceViewCount = 0;
+  if (!mFullscreenOpt)
+    return false;
 
-  for (auto& l : mLayers) {
-    Hwc2Layer& layer = l.second;
-    if(NULL != strstr(layer.name(),"SurfaceView"))
-      surfaceViewCount++;
-
-    //if only have one landscape layer, consider it fullscreen mode
-    if (layer.buffer() != nullptr && 1 == mLayers.size() && layer.info().transform == 0)
-      oneLandscapeLayer = true;
-  }
-
-  //if all layers are SurfaceView layer and layer count <=2, consider it fullscreen mode(for tencent special case)
-  if (mLayers.size() == surfaceViewCount && surfaceViewCount <= 2)
-    hasAppUi = false;
+  // Single layer
+  if (mLayers.size() != 1)
+    return false;
 
   int32_t format = -1;
-  if (1 == mLayers.size()) {
-    for (auto& l : mLayers) {
-        Hwc2Layer& layer = l.second;
-        BufferMapper::getMapper().getBufferFormat(layer.buffer(), format);
-    }
+  auto& layer = mLayers.begin()->second;
+
+  // Layer Buffer
+  if (!layer.buffer())
+    return false;
+
+  // No rotation
+  if (layer.info().transform != 0)
+    return false;
+
+  // Fullscreen
+  if (layer.info().dstFrame.right != mWidth || layer.info().dstFrame.bottom != mHeight)
+    return false;
+
+  // Supported formats
+  BufferMapper::getMapper().getBufferFormat(layer.buffer(), format);
+  if (format == HAL_PIXEL_FORMAT_RGBA_8888 || 
+      format == HAL_PIXEL_FORMAT_RGBX_8888 ||
+      format == HAL_PIXEL_FORMAT_RGB_565 ||
+      (mEnableVideoBypass && format == HAL_PIXEL_FORMAT_INTEL_NV12_TILED)) {
+    mBypassLayer = &layer;
+    return true;
   }
-  //ALOGI("buf format(%d)\n", format);
-  return (oneLandscapeLayer || !hasAppUi) && (format == HAL_PIXEL_FORMAT_RGBA_8888 || format == HAL_PIXEL_FORMAT_RGBX_8888);
+
+  return false;
 }
 
 void Hwc2Display::exitFullScreenMode() {
@@ -789,12 +741,12 @@ if (mFullscreenOpt) {
     Hwc2Layer& layer = l.second;
     switch (layer.type()) {
       case Composition::Device:
-	if (!mFullScreenMode) {
+	      if (!mFullScreenMode) {
           layer.setValidatedType(Composition::Client);
           ++*numTypes;
-	} else {
+	      } else {
           layer.setValidatedType(Composition::Device);
-	}
+	      }
         break;
       case Composition::SolidColor:
       case Composition::Cursor:

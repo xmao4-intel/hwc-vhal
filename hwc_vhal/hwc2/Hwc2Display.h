@@ -138,6 +138,8 @@ class Hwc2Display : public DisplayEventListener {
   std::map<int64_t,buffer_handle_t> mFullScreenBuffers;
   bool mFullScreenMode = false;
   bool mFullscreenOpt = false;
+  bool mEnableVideoBypass = false;
+  Hwc2Layer* mBypassLayer = nullptr;
 
   buffer_handle_t mOutputBuffer = nullptr;
   int mOutputBufferFenceFd = -1;
