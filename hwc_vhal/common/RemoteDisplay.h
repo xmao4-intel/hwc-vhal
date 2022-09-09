@@ -65,12 +65,12 @@ class RemoteDisplay {
   DisplayStatusListener* mStatusListener = nullptr;
   DisplayEventListener* mEventListener = nullptr;
 
-  uint32_t mPort;
-  uint32_t mWidth;
-  uint32_t mHeight;
-  uint32_t mFramerate;
-  uint32_t mXDpi;
-  uint32_t mYDpi;
+  uint32_t mPort = 0;
+  uint32_t mWidth = 0;
+  uint32_t mHeight = 0;
+  uint32_t mFramerate = 0;
+  uint32_t mXDpi = 0;
+  uint32_t mYDpi = 0;
 
   display_flags mDisplayFlags = {.value = 0};
 };

@@ -73,8 +73,8 @@ class Hwc2Layer {
   int32_t mDataspace = 0;
   hwc_rect_t mDstFrame = {.left = 0, .top = 0, .right = 0, .bottom = 0};
   hwc_frect_t mSrcCrop = {.left = 0.0, .top = 0.0, .right = 0.0, .bottom = 0.0};
-  hwc_region_t mDamage;
-  hwc_region_t mVisibleRegion;
+  hwc_region_t mDamage = {0, };
+  hwc_region_t mVisibleRegion = {0, };
 
   hwc_color_t mColor = {.r = 0, .g = 0, .b = 0, .a = 0};
   float mAlpha = 0.0f;
@@ -87,7 +87,7 @@ class Hwc2Layer {
   uint32_t mIndex = 0;
 
   RemoteDisplay* mRemoteDisplay = nullptr;
-  layer_info_t mInfo;
+  layer_info_t mInfo = {0, };
   layer_buffer_info_t mLayerBuffer;
 };
 
