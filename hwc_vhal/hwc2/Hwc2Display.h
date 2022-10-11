@@ -139,6 +139,7 @@ class Hwc2Display : public DisplayEventListener {
   bool mFullScreenMode = false;
   bool mFullscreenOpt = false;
   bool mEnableVideoBypass = false;
+  bool mEnableRotationBypass = false;
   Hwc2Layer* mBypassLayer = nullptr;
 
   buffer_handle_t mOutputBuffer = nullptr;

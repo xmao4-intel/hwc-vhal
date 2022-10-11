@@ -72,6 +72,11 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
     mEnableVideoBypass = true;
   }
 
+  property_get("ro.hwc_vhal.rotation_bypass", value, "false");
+  if (0 == strcmp("true", value)) {
+    mEnableRotationBypass = true;
+  }
+
   if (w && h) {
     mWidth = w;
     mHeight = h;
@@ -638,7 +643,7 @@ bool Hwc2Display::checkFullScreenMode() {
     return false;
 
   // No rotation
-  if (layer.info().transform != 0)
+  if (!mEnableRotationBypass && layer.info().transform != 0)
     return false;
 
   // Fullscreen
