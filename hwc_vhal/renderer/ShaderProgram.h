@@ -15,6 +15,7 @@ public:
 
     GLuint getProgram() const { return mProgram; }
     GLint getUniformLocation(const char* name);
+    GLint getAttribLocation(const char* name);
 
 private:
     GLuint loadShader(GLenum shaderType, const char* pSource);
@@ -25,7 +26,8 @@ private:
     GLuint mProgram = 0;
     bool mIsComputeProgram = false;
     std::map<GLenum, GLuint> mShaders;
-    std::map<std::string, GLint> mUniformLocs;
+    std::map<std::string, GLint> mUniformLoctions;
+    std::map<std::string, GLint> mAttribLoctions;
 };
 
 #endif

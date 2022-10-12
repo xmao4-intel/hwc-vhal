@@ -2,6 +2,7 @@
 #define __HWC2_DISPLAY_H__
 
 #include <map>
+#include <set>
 #include <memory>
 #include <vector>
 
@@ -13,6 +14,7 @@
 
 #include "RenderThread.h"
 #include "VisibleBoundDetect.h"
+#include "AlphaVideo.h"
 
 #ifdef ENABLE_HWC_VNC
 #include "VncDisplay.h"
@@ -36,6 +38,7 @@ class Hwc2Display : public DisplayEventListener {
   int onBufferDisplayed(const buffer_info_t& info) override;
   int onPresented(std::vector<layer_buffer_info_t>& layerBuffer,
                   int& fence) override;
+  int onSetVideoAlpha(int action) override;
 
   hwc2_display_t getDisplayID() const { return mDisplayID; }
   Hwc2Layer& getLayer(hwc2_layer_t l) { return mLayers.at(l); }
@@ -180,6 +183,9 @@ class Hwc2Display : public DisplayEventListener {
 
   std::unique_ptr<RenderThread> mRenderThread;
   std::unique_ptr<VisibleBoundDetect> mVisibleBoundDetect;
+  std::unique_ptr<AlphaVideo> mAlphaVideo;
+  std::set<buffer_handle_t> mAlphaVideoBuffers;
+  std::mutex mRenderTaskMutex;
 };
 
 #endif  // __HWC2_DISPLAY_H__

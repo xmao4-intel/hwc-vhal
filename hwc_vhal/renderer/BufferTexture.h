@@ -33,6 +33,9 @@ public:
     uint32_t getHeight() const {
         return mHeight;
     }
+    int32_t getFormat() const {
+        return mFormat;
+    }
 private:
     sp<GraphicBuffer> mBuffer = nullptr;
     EGLDisplay mDisplay = EGL_NO_DISPLAY;

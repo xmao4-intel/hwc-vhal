@@ -46,6 +46,7 @@
 #define DD_EVENT_DISPPORT_ACK 0x1701
 
 #define DD_EVENT_SET_MODE 0x1800
+#define DD_EVENT_SET_VIDEO_ALPHA_REQ 0x1900
 
 // define framebuffer id as the max
 #define LAYER_ID_FRAMEBUFFER 0xffffffffffffffff
@@ -173,4 +174,13 @@ typedef struct _display_port_event_t {
   display_port_t dispPort;
 } display_port_event_t;
 
+typedef struct _set_video_alpha_t {
+  uint32_t enable;
+  uint32_t reserved[3];
+} set_video_alpha_t;
+
+typedef struct _display_set_video_alpha_event_t {
+  display_event_t event;
+  set_video_alpha_t alpha;
+} display_set_video_alpha_event_t;
 #endif  // _H_DISPLAY_PROTOCOL_

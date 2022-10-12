@@ -130,6 +130,7 @@ int Hwc2Display::attach(RemoteDisplay* rd) {
     return -1;
 
   mRemoteDisplay = rd;
+  mRemoteDisplay->setDisplayEventListener(this);
   mPort = (mDisplayID != kPrimayDisplay) ?  mRemoteDisplay->port() : 0;
   mWidth = mRemoteDisplay->width();
   mHeight = mRemoteDisplay->height();
@@ -155,6 +156,7 @@ int Hwc2Display::detach(RemoteDisplay* rd) {
     mFbtBuffers.clear();
     mFullScreenBuffers.clear();
     mTransform = 0;
+    mRemoteDisplay->setDisplayEventListener(nullptr);
     mRemoteDisplay = nullptr;
   }
   return 0;
@@ -173,6 +175,40 @@ int Hwc2Display::onPresented(std::vector<layer_buffer_info_t>& layerBuffer,
   flags.value = mRemoteDisplay->flags();
   // mMode = flags.mode;
 
+  return 0;
+}
+
+int Hwc2Display::onSetVideoAlpha(int action) {
+  ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
+  ALOGD("Hwc2Display::onSetVideoAlpha: SetVideoAlpha to %d", action);
+
+  std::unique_lock<std::mutex> lck(mRenderTaskMutex);
+
+  if (action) {
+    if (mRenderThread == nullptr) {
+      mRenderThread = std::make_unique<RenderThread>();
+      mRenderThread->init();
+    }
+    if (mAlphaVideo == nullptr) {
+      mAlphaVideo = std::make_unique<AlphaVideo>();
+    }
+  } else {
+    if (mRemoteDisplay) {
+      for ( auto buffer : mAlphaVideoBuffers) {
+        mRemoteDisplay->removeBuffer(buffer);
+      }
+      mAlphaVideoBuffers.clear();
+    }
+
+    if (mAlphaVideo != nullptr) {
+      if (mRenderThread != nullptr) {
+        ReleaseTask rt(mAlphaVideo.release());
+        mRenderThread->runTask(&rt);
+      } else {
+        mAlphaVideo = nullptr;
+      }
+    }
+  }
   return 0;
 }
 
@@ -423,7 +459,25 @@ Error Hwc2Display::present(int32_t* retireFence) {
   buffer_handle_t target = nullptr;
   int32_t acquireFence = -1;
   if (mRemoteDisplay) {
-    if (!mFullScreenMode) {
+    std::unique_lock<std::mutex> lck(mRenderTaskMutex);
+    if (mAlphaVideo != nullptr && mRenderThread != nullptr) {
+	    uint32_t zOrder = UINT32_MAX;
+      for (auto& l : mLayers) {
+        Hwc2Layer& layer = l.second;
+        if ( layer.zOrder() < zOrder) {
+          zOrder = layer.zOrder();
+          target = layer.buffer();
+        }
+      }
+      mAlphaVideo->setBuffer(target);
+      mRenderThread->runTask(mAlphaVideo.get());
+      target = mAlphaVideo->getOutputHandle();
+
+      if (mAlphaVideoBuffers.find(target) == mAlphaVideoBuffers.end()) {
+        mAlphaVideoBuffers.insert(target);
+        mRemoteDisplay->createBuffer(target);
+      }
+    } else if (!mFullScreenMode) {
       target = mFbTarget;
       acquireFence = mFbAcquireFenceFd;
     } else {

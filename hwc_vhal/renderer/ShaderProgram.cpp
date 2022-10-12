@@ -40,11 +40,20 @@ ShaderProgram::~ShaderProgram() {
 
 GLint ShaderProgram::getUniformLocation(const char* name) {
     std::string s = name;
-    if (mUniformLocs.find(s) == mUniformLocs.end()) {
+    if (mUniformLoctions.find(s) == mUniformLoctions.end()) {
         GLint loc = glGetUniformLocation(mProgram, s.c_str());
-        mUniformLocs.insert(std::make_pair(s, loc));
+        mUniformLoctions.insert(std::make_pair(s, loc));
     }
-    return mUniformLocs.at(s);
+    return mUniformLoctions.at(s);
+}
+
+GLint ShaderProgram::getAttribLocation(const char* name) {
+    std::string s = name;
+    if (mAttribLoctions.find(s) == mAttribLoctions.end()) {
+        GLint loc = glGetAttribLocation(mProgram, s.c_str());
+        mAttribLoctions.insert(std::make_pair(s, loc));
+    }
+    return mAttribLoctions.at(s);
 }
 
 GLuint ShaderProgram::loadShader(GLenum shaderType, const char* pSource) {

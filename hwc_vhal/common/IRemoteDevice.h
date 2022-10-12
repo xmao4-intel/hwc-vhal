@@ -25,6 +25,7 @@ struct DisplayEventListener {
   virtual ~DisplayEventListener(){};
   virtual int onBufferDisplayed(const buffer_info_t& info) = 0;
   virtual int onPresented(std::vector<layer_buffer_info_t>& layerBuffer, int& fence) = 0;
+  virtual int onSetVideoAlpha(int action) = 0;
 };
 
 #endif  //__IREMOTE_DEVICE_H__

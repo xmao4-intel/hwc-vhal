@@ -76,6 +76,7 @@ LOCAL_SRC_FILES := \
         renderer/BufferTexture.cpp \
         renderer/ShaderProgram.cpp \
         renderer/VisibleBoundDetect.cpp \
+        renderer/AlphaVideo.cpp \
         hwc2/Hwc2Device.cpp \
         hwc2/Hwc2Display.cpp \
         hwc2/Hwc2Layer.cpp \

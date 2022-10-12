@@ -445,6 +445,22 @@ int RemoteDisplay::onSetMode(const display_event_t& ev) {
   return 0;
 }
 
+ int RemoteDisplay::onSetVideoAlpha(const display_event_t& ev) {
+  ALOGD("RemoteDisplay(%d)::%s", mSocketFd, __func__);
+
+  set_video_alpha_t video_alpha;
+  int ret = _recv(&video_alpha, sizeof(video_alpha));
+  if (ret < 0) {
+    ALOGE("RemoteDisplay(%d) failed to set video alpha req", mSocketFd);
+    return -1;
+  }
+  if (mEventListener) {
+    ALOGD("RemoteDisplay(%d)::%s alpha=%d", mSocketFd, __func__, video_alpha.enable);
+    mEventListener->onSetVideoAlpha(video_alpha.enable);
+  }
+  return 0;
+ }
+
 int RemoteDisplay::onDisplayBufferAck(const display_event_t& ev) {
   ALOGV("RemoteDisplay(%d)::%s", mSocketFd, __func__);
 
@@ -521,6 +537,10 @@ int RemoteDisplay::onDisplayEvent() {
       break;
     case DD_EVENT_SET_MODE:
       onSetMode(ev);
+      break;
+    case DD_EVENT_SET_VIDEO_ALPHA_REQ:
+      ALOGD("RemoteDisplay(%d)::%s DD_EVENT_SET_VIDEO_ALPHA_REQ", mSocketFd, __func__);
+      onSetVideoAlpha(ev);
       break;
     default: {
       char buf[1024];
