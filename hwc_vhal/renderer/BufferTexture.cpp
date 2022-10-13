@@ -17,7 +17,7 @@
 #define CHECK()
 #endif
 
-BufferTexture::BufferTexture(buffer_handle_t b) {
+BufferTexture::BufferTexture(buffer_handle_t b, bool fbo) {
     if (EGL_NO_DISPLAY == mDisplay) {
         mDisplay = eglGetCurrentDisplay();
     }
@@ -28,6 +28,7 @@ BufferTexture::BufferTexture(buffer_handle_t b) {
 
     uint32_t stride = 0;
     uint64_t usage = GraphicBuffer::USAGE_HW_TEXTURE;
+    GLenum target = fbo ? GL_TEXTURE_2D : GL_TEXTURE_EXTERNAL_OES;
 
     BufferMapper& mapper = BufferMapper::getMapper();
     mapper.getBufferSize(b, mWidth, mHeight);
@@ -44,10 +45,24 @@ BufferTexture::BufferTexture(buffer_handle_t b) {
 
     glGenTextures(1, &mTexture);
     CHECK();
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, mTexture);
+    glBindTexture(target, mTexture);
     CHECK();
-    glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, (GLeglImageOES)mImage);
+    glEGLImageTargetTexture2DOES(target, (GLeglImageOES)mImage);
     CHECK();
+
+    if (fbo) {
+        glGenFramebuffers(1, &mFBO);
+        CHECK();
+        glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+        CHECK();
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mTexture, 0);
+        CHECK();
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE) {
+            ALOGE("BufferTexture: Failed to bind fbo:%d", status);
+            return;
+        }
+    }
 }
 
 BufferTexture::BufferTexture(uint32_t width, uint32_t height, int32_t format) {

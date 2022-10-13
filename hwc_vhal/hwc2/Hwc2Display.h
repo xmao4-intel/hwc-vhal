@@ -172,10 +172,10 @@ class Hwc2Display : public DisplayEventListener {
   HWC2::Vsync mVsyncEnabled;
   VsyncThread mVsyncThread;
 
-#ifdef ENABLE_LAYER_DUMP
+  bool mEnableLayerDump = false;
   int mFrameToDump = 0;
   bool mDebugRotationTransition = false;
-#endif
+  bool mEnableFpsLog = false;
 
 #ifdef ENABLE_HWC_VNC
   VncDisplay* mVncDisplay = nullptr;

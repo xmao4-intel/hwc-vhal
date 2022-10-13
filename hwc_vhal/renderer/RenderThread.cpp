@@ -35,13 +35,15 @@ void RenderThread::join() {
 void RenderThread::runTaskAsync(RenderTask* t) {
     if (!t) return;
     std::unique_lock<std::mutex> lck(mQueueMutex);
-    tasks.push_back(t);
+    mAsyncTasks.push_back(t);
     mNewTask.notify_all();
 }
 
 void RenderThread::runTask(RenderTask* t) {
     if (!t) return;
-    runTaskAsync(t);
+    std::unique_lock<std::mutex> lck(mQueueMutex);
+    mSyncTasks.push_back(t);
+    mNewTask.notify_all();
     t->wait();
 }
 
@@ -99,12 +101,22 @@ void RenderThread::renderThreadProc() {
     while (1) {
         {
             std::unique_lock<std::mutex> lck(mQueueMutex);
-            if (tasks.empty()) {
+            if (mSyncTasks.empty() && mAsyncTasks.empty()) {
                 mNewTask.wait(lck);
             }
         }
-        auto t = tasks.front();
-        tasks.pop_front();
-        t->runIt();
+        while (!mSyncTasks.empty()) {
+            auto t = mSyncTasks.front();
+            mSyncTasks.pop_front();
+            t->runIt();
+        }
+        // async tasks will be run only when no sync tasks to run
+        // Ownership of asyncTask will move from client to renderthread
+        if (!mAsyncTasks.empty()) {
+            auto t = mAsyncTasks.front();
+            mAsyncTasks.pop_front();
+            t->runIt();
+            delete t;
+        }
     }
 }

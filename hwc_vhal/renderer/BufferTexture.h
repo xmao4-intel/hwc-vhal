@@ -13,7 +13,7 @@ using namespace android;
 
 class BufferTexture {
 public:
-    BufferTexture(buffer_handle_t b);
+    BufferTexture(buffer_handle_t b, bool fbo = false);
     BufferTexture(uint32_t width, uint32_t height, int32_t format);
     ~BufferTexture();
 

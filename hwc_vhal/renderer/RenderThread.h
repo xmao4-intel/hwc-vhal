@@ -47,7 +47,8 @@ private:
 
 private:
     std::unique_ptr<std::thread> mThread;
-    std::list<RenderTask*> tasks;
+    std::list<RenderTask*> mSyncTasks;
+    std::list<RenderTask*> mAsyncTasks;
     std::mutex mQueueMutex;
     std::condition_variable mNewTask;
 

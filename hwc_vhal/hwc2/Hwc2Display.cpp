@@ -17,6 +17,7 @@
 #endif
 
 #include "BufferMapper.h"
+#include "FastBufferDump.h"
 
 using namespace HWC2;
 
@@ -89,6 +90,16 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
   property_get("ro.hwc_vhal.rotation_bypass", value, "false");
   if (0 == strcmp("true", value)) {
     mEnableRotationBypass = true;
+  }
+
+  property_get("ro.hwc_vhal.layer_dump", value, "false");
+  if (0 == strcmp("true", value)) {
+    mEnableLayerDump = true;
+  }
+
+  property_get("ro.hwc_vhal.fps_log", value, "false");
+  if (0 == strcmp("true", value)) {
+    mEnableFpsLog = true;
   }
 
   if (w && h) {
@@ -507,37 +518,76 @@ Error Hwc2Display::present(int32_t* retireFence) {
   }
 #endif
 
-#ifdef ENABLE_LAYER_DUMP
-  dump();
+#define unlikely(x) __builtin_expect(!!(x), 0)
 
-  if (mFrameToDump == 0) {
+  if (unlikely(mEnableLayerDump)) {
     char value[PROPERTY_VALUE_MAX];
-    if (property_get("hwc_vhal.frame_to_dump", value, nullptr)) {
-      mFrameToDump = atoi(value);
-      property_set("hwc_vhal.frame_to_dump", "0");
+    uint32_t zOrderDump = UINT32_MAX;
+    bool dumpAll = false;
+    bool dumpFB = !mFullScreenMode;
+    int dumpType = 0; // 0 - png, 1 - ppm, 2 - raw
+    if (mFrameToDump == 0) {
+      if (property_get("debug.hwc_vhal.frame_to_dump", value, nullptr)) {
+        mFrameToDump = atoi(value);
+        property_set("debug.hwc_vhal.frame_to_dump", "0");
+      }
+    }
+    if (mFrameToDump > 0) {
+      if (mRenderThread == nullptr) {
+        mRenderThread = std::make_unique<RenderThread>();
+        mRenderThread->init();
+      }
+      if (mFrameToDump) {
+        if (property_get("debug.hwc_vhal.layer_to_dump", value, nullptr)) {
+          if (!strcmp(value, "all")) {
+            dumpAll = true;
+          } else if (!strcmp(value, "fb")) {
+            dumpFB = true;
+          } else {
+            zOrderDump = atoi(value);
+          }
+        }
+      }
+      if (property_get("debug.hwc_vhal.layer_dump_type", value, nullptr)) {
+        if (!strcmp(value, "png")) {
+          dumpType = 0;
+        } else if (!strcmp(value, "ppm")) {
+          dumpType = 1;
+        } else if (!strcmp(value, "raw")) {
+          dumpType = 2;
+        }
+      }
+
+      if (dumpAll || zOrderDump < mLayers.size()) {
+        for (auto& l : mLayers) {
+          Hwc2Layer& layer = l.second;
+          auto t = layer.buffer();
+          uint32_t z = layer.zOrder();
+          if (t && (dumpAll || z == zOrderDump)) {
+            auto fbd = new FastBufferDump(mFrameNum, z, t, dumpType);
+            mRenderThread->runTaskAsync(fbd);
+          }
+        }
+      }
+      if (dumpFB) {
+        auto fbd = new FastBufferDump(mFrameNum, UINT32_MAX, mFbTarget, dumpType);
+        mRenderThread->runTaskAsync(fbd);
+      }
+      mFrameToDump--;
     }
   }
-  if (mFrameToDump > 0) {
-    auto& dumper = BufferDumper::getBufferDumper();
-
-    ALOGD("Dump fb=%p for %d", mFbTarget, mFrameNum);
-    dumper.dumpBuffer(mFbTarget, mFrameNum);
-    mFrameToDump--;
+  if (unlikely(mEnableFpsLog)) {
+    if (mFrameNum % mFramerate == 0) {
+      int64_t currentNS = systemTime(SYSTEM_TIME_MONOTONIC);
+      int64_t lastNS = mLastPresentTime;
+      float deltaMS = (currentNS - lastNS) / 1000000.0;
+      float fps = 1000.0 * mFramerate / deltaMS;
+      ALOGI("total mFrameNum = %d, fps = %.2f\n", mFrameNum, fps);
+      mLastPresentTime = currentNS;
+    }
   }
-#endif
 
   mFrameNum++;
-  char* p_env_dump = NULL;
-  p_env_dump = getenv("ENV_DUMP_GFX_FPS");
-  if ((p_env_dump != NULL) && strcmp(p_env_dump, "true") == 0 && (mFrameNum % mFramerate == 0)) {
-    int64_t currentNS = systemTime(SYSTEM_TIME_MONOTONIC);
-    int64_t lastNS = mLastPresentTime;
-    float deltaMS = (currentNS - lastNS) / 1000000.0;
-    float fps = 1000.0 * mFramerate / deltaMS;
-    ALOGI("total mFrameNum = %d, fps = %.2f\n", mFrameNum, fps);
-    mLastPresentTime = currentNS;
-  }
-
   mShowCurrentFrame = false;
   *retireFence = -1;
   return Error::None;
