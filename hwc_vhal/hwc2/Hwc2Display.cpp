@@ -17,6 +17,7 @@
 #endif
 
 #include "BufferMapper.h"
+
 using namespace HWC2;
 
 //#define DEBUG_LAYER
@@ -70,6 +71,19 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
   property_get("ro.hwc_vhal.video_bypass", value, "false");
   if (0 == strcmp("true", value)) {
     mEnableVideoBypass = true;
+  }
+
+  property_get("ro.hwc_vhal.multi_layer_bypass", value, "false");
+  if (0 == strcmp("true", value)) {
+    mEnableMultiLayerBypass = true;
+  }
+
+  if (mEnableVideoBypass) {
+    property_get("ro.hwc_vhal.force_video_bypass", value, "false");
+    if (0 == strcmp("true", value)) {
+      mEnableMultiLayerBypass = true;
+      mForceVideoBypass = true;
+    }
   }
 
   property_get("ro.hwc_vhal.rotation_bypass", value, "false");
@@ -627,39 +641,141 @@ bool Hwc2Display::VsyncThread::threadLoop() {
   return false;
 }
 
+bool Hwc2Display::IsBufferVisible(buffer_handle_t bh) {
+  if (mRenderThread == nullptr) {
+    mRenderThread = std::make_unique<RenderThread>();
+    mRenderThread->init();
+  }
+  if (mVisibleBoundDetect == nullptr) {
+    mVisibleBoundDetect = std::make_unique<VisibleBoundDetect>();
+  }
+  mVisibleBoundDetect->setBuffer(bh);
+  mRenderThread->runTask(mVisibleBoundDetect.get());
+  auto r = mVisibleBoundDetect->getResult();
+
+  // Check Logo or fully transparent
+  int w = r->bound[2] - r->bound[0];
+  int h = r->bound[3] - r->bound[1];
+
+  ALOGD("%s:bound l=%d t=%d r=%d b=%d size=%dx%d", __func__,
+      r->bound[0], r->bound[1], r->bound[2], r->bound[3], w, h);
+
+  if (w < 0 || h < 0)
+    return false;
+
+  // traditional iqiyi-tv logo size 137x30, 84x52 and 103x21 at 280 DPI,
+  // 117x26, 72x44 and 88x18 at 80 DPI
+  if (w < 140 && h < 55)
+    return false;
+
+  return true;
+}
+
+bool Hwc2Display::checkMultiLayerVideoBypass() {
+  if (!mEnableVideoBypass)
+    return false;
+
+  int32_t format = -1;
+  int bufferLayerCount = 0;
+  Hwc2Layer* videoLayer = nullptr;
+  Hwc2Layer* topLayer = nullptr;
+
+  for (auto& it : mLayers) {
+    auto* layer = &it.second;
+    auto bh = layer->buffer();
+    if (bh) {
+      BufferMapper::getMapper().getBufferFormat(bh, format);
+      if (HAL_PIXEL_FORMAT_INTEL_NV12_TILED == format) {
+        videoLayer = layer;
+      } else if (HAL_PIXEL_FORMAT_RGBA_8888 == format) {
+        topLayer = layer;
+      }
+      bufferLayerCount ++;
+//      ALOGD("%s:buf=%p z=%d type=%d format=%d age=%" PRId64 " last flip duration=%" PRId64 "", __FUNCTION__,
+//        layer->buffer(), layer->info().z, layer->type(), format, layer->getAgeInNs(), layer->getLastFlipDuration());
+    }
+  }
+
+  // reject if not video playback
+  if (!videoLayer) {
+    if (mVisibleBoundDetect != nullptr) {
+      if (mRenderThread != nullptr) {
+        ReleaseTask rt(mVisibleBoundDetect.release());
+        mRenderThread->runTask(&rt);
+      }
+      else {
+        mVisibleBoundDetect = nullptr;
+      }
+    }
+    return false;
+  }
+
+  // force video bypass or video layer is the only buffer layer
+  if (mForceVideoBypass || bufferLayerCount == 1) {
+    mBypassLayer = videoLayer;
+    return true;
+  }
+
+  // reject if 2 or more other buffer layers.
+  if (bufferLayerCount > 2)
+     return false;
+
+  if (topLayer) {
+    if (topLayer->zOrder() < videoLayer->zOrder())
+      return false;
+
+    // If top layer not flipped in 2s or flipped from invisible, check if
+    // current is visible.
+    if ((topLayer->getAgeInNs() > 2 * Hwc2Layer::kOneSecondNs) ||
+        (topLayer->getLastVisibleState() == Hwc2Layer::INVISIBLE)) {
+      auto visibleState = topLayer->getVisibleState();
+      if (Hwc2Layer::UNKNOWN == visibleState) {
+        visibleState = IsBufferVisible(topLayer->buffer()) ? Hwc2Layer::VISIBLE : Hwc2Layer::INVISIBLE;
+        topLayer->setVisibleState(visibleState);
+      }
+
+      if (Hwc2Layer::INVISIBLE == visibleState) {
+        mBypassLayer = videoLayer;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 bool Hwc2Display::checkFullScreenMode() {
   if (!mFullscreenOpt)
     return false;
 
   // Single layer
-  if (mLayers.size() != 1)
-    return false;
+  if (mLayers.size() == 1) {
+    int32_t format = -1;
+    auto& layer = mLayers.begin()->second;
 
-  int32_t format = -1;
-  auto& layer = mLayers.begin()->second;
+    // Layer Buffer
+    if (!layer.buffer())
+      return false;
 
-  // Layer Buffer
-  if (!layer.buffer())
-    return false;
+    // No rotation
+    if (!mEnableRotationBypass && layer.info().transform != 0)
+      return false;
 
-  // No rotation
-  if (!mEnableRotationBypass && layer.info().transform != 0)
-    return false;
+    // Fullscreen
+    if (layer.info().dstFrame.right != mWidth || layer.info().dstFrame.bottom != mHeight)
+      return false;
 
-  // Fullscreen
-  if (layer.info().dstFrame.right != mWidth || layer.info().dstFrame.bottom != mHeight)
-    return false;
-
-  // Supported formats
-  BufferMapper::getMapper().getBufferFormat(layer.buffer(), format);
-  if (format == HAL_PIXEL_FORMAT_RGBA_8888 || 
-      format == HAL_PIXEL_FORMAT_RGBX_8888 ||
-      format == HAL_PIXEL_FORMAT_RGB_565 ||
-      (mEnableVideoBypass && format == HAL_PIXEL_FORMAT_INTEL_NV12_TILED)) {
-    mBypassLayer = &layer;
-    return true;
+    // Supported formats
+    BufferMapper::getMapper().getBufferFormat(layer.buffer(), format);
+    if (format == HAL_PIXEL_FORMAT_RGBA_8888 ||
+        format == HAL_PIXEL_FORMAT_RGBX_8888 ||
+        format == HAL_PIXEL_FORMAT_RGB_565 ||
+        (mEnableVideoBypass && format == HAL_PIXEL_FORMAT_INTEL_NV12_TILED)) {
+      mBypassLayer = &layer;
+      return true;
+    }
+  } else if (mEnableMultiLayerBypass) {
+    return checkMultiLayerVideoBypass();
   }
-
   return false;
 }
 
@@ -746,6 +862,7 @@ if (mFullscreenOpt) {
     Hwc2Layer& layer = l.second;
     switch (layer.type()) {
       case Composition::Device:
+      case Composition::SolidColor:
 	      if (!mFullScreenMode) {
           layer.setValidatedType(Composition::Client);
           ++*numTypes;
@@ -753,7 +870,6 @@ if (mFullscreenOpt) {
           layer.setValidatedType(Composition::Device);
 	      }
         break;
-      case Composition::SolidColor:
       case Composition::Cursor:
       case Composition::Sideband:
         layer.setValidatedType(Composition::Client);

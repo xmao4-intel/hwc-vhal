@@ -30,7 +30,8 @@ TARGET_USES_HWC2 := true
 #VIDEO_STREAMING_OPT := true
 
 LOCAL_CFLAGS := -g -DLOG_TAG=\"hwc_vhal\" -g -Wno-missing-field-initializers -Wno-unused-parameter
-LOCAL_CPPFLAGS := -g -std=c++11 -Wall -Werror -Wno-unused-parameter
+LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES -DEGL_EGLEXT_PROTOTYPES
+LOCAL_CPPFLAGS := -g -std=c++17 -Wall -Werror -Wno-unused-parameter
 LOCAL_LDFLAGS :=  -g
 
 ifeq ($(TARGET_USES_HWC2), false)
@@ -71,6 +72,10 @@ LOCAL_SRC_FILES := \
         common/RemoteDisplayMgr.cpp \
         common/LocalDisplay.cpp \
         common/BufferMapper.cpp \
+        renderer/RenderThread.cpp \
+        renderer/BufferTexture.cpp \
+        renderer/ShaderProgram.cpp \
+        renderer/VisibleBoundDetect.cpp \
         hwc2/Hwc2Device.cpp \
         hwc2/Hwc2Display.cpp \
         hwc2/Hwc2Layer.cpp \
@@ -108,6 +113,7 @@ endif
 LOCAL_C_INCLUDES += \
         $(LOCAL_PATH) \
         $(LOCAL_PATH)/common \
+        $(LOCAL_PATH)/renderer \
         system/core/libsync/include \
 
 LOCAL_SHARED_LIBRARIES := \
@@ -116,6 +122,9 @@ LOCAL_SHARED_LIBRARIES := \
         libutils \
         libhardware \
         libsync \
+        libui \
+        libEGL \
+        libGLESv2 \
 
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE := hwcomposer.intel_sw

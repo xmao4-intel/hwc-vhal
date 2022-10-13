@@ -11,6 +11,9 @@
 #include "display_protocol.h"
 #include <utils/Thread.h>
 
+#include "RenderThread.h"
+#include "VisibleBoundDetect.h"
+
 #ifdef ENABLE_HWC_VNC
 #include "VncDisplay.h"
 #endif
@@ -87,6 +90,7 @@ class Hwc2Display : public DisplayEventListener {
   HWC2::Error setBrightness(float brightness);
   HWC2::Error getIdentificationData(uint8_t* outPort, uint32_t* outDataSize, uint8_t* outData);
 
+  bool checkMultiLayerVideoBypass();
   bool checkFullScreenMode();
   void exitFullScreenMode();
 
@@ -116,6 +120,8 @@ class Hwc2Display : public DisplayEventListener {
   HWC2::Error refresh();
   int updateRotation();
 
+  bool IsBufferVisible(buffer_handle_t bh);
+
  protected:
   const char* mName = "PrimaryDisplay";
   const hwc2_display_t kPrimayDisplay = 0;
@@ -138,8 +144,11 @@ class Hwc2Display : public DisplayEventListener {
   std::map<int64_t,buffer_handle_t> mFullScreenBuffers;
   bool mFullScreenMode = false;
   bool mFullscreenOpt = false;
-  bool mEnableVideoBypass = false;
   bool mEnableRotationBypass = false;
+  bool mEnableVideoBypass = false;
+  bool mEnableMultiLayerBypass = false;
+  bool mForceVideoBypass = false;
+
   Hwc2Layer* mBypassLayer = nullptr;
 
   buffer_handle_t mOutputBuffer = nullptr;
@@ -168,6 +177,9 @@ class Hwc2Display : public DisplayEventListener {
 #ifdef ENABLE_HWC_VNC
   VncDisplay* mVncDisplay = nullptr;
 #endif
+
+  std::unique_ptr<RenderThread> mRenderThread;
+  std::unique_ptr<VisibleBoundDetect> mVisibleBoundDetect;
 };
 
 #endif  // __HWC2_DISPLAY_H__

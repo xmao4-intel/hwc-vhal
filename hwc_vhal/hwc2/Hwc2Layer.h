@@ -12,6 +12,13 @@ class Hwc2Layer {
   Hwc2Layer(hwc2_layer_t idx);
   ~Hwc2Layer();
 
+  static const int64_t kOneSecondNs = 1000ULL * 1000ULL * 1000ULL;
+  enum VISIBLE_STATE {
+    UNKNOWN = 0,
+    VISIBLE = 1,
+    INVISIBLE = 2,
+  };
+
   void setRemoteDisplay(RemoteDisplay* disp) { mRemoteDisplay = disp; }
   HWC2::Composition type() const { return mType; }
   void setValidatedType(HWC2::Composition t) { mValidatedType = t; }
@@ -34,6 +41,16 @@ class Hwc2Layer {
   buffer_handle_t buffer() { return mBuffer; }
   int32_t acquireFence() { return mAcquireFence; }
   const std::set<buffer_handle_t>& buffers() const { return mBuffers; }
+  int64_t getAgeInNs() const {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    int64_t currentNs = now.tv_nsec + now.tv_sec * kOneSecondNs;
+    return (currentNs - mLastUpdateTime);
+  }
+  int64_t getLastFlipDuration() const { return mLastFlipDuration; }
+  void setVisibleState(VISIBLE_STATE state) { mVisibleState = state; }
+  VISIBLE_STATE getVisibleState() const { return mVisibleState; }
+  VISIBLE_STATE getLastVisibleState() const { return mLastVisibleState; }
 
   // Layer hooks
   HWC2::Error setCursorPosition(int32_t x, int32_t y);
@@ -69,6 +86,10 @@ class Hwc2Layer {
   std::set<buffer_handle_t> mBuffers;
   buffer_handle_t mBuffer = nullptr;
   int mAcquireFence = -1;
+  int64_t mLastUpdateTime = 0;
+  int64_t mLastFlipDuration = 0;
+  VISIBLE_STATE mVisibleState = UNKNOWN;
+  VISIBLE_STATE mLastVisibleState = UNKNOWN;
 
   int32_t mDataspace = 0;
   hwc_rect_t mDstFrame = {.left = 0, .top = 0, .right = 0, .bottom = 0};

@@ -69,6 +69,14 @@ Error Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
     mLayerBuffer.bufferId = (uint64_t)mBuffer;
     mLayerBuffer.fence = acquireFence;
     mLayerBuffer.changed = true;
+
+    mLastVisibleState = mVisibleState;
+    mVisibleState = UNKNOWN;
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    int64_t currentNs = now.tv_nsec + now.tv_sec * kOneSecondNs;
+    mLastFlipDuration = currentNs - mLastUpdateTime;
+    mLastUpdateTime = currentNs;
   }
   return Error::None;
 }
