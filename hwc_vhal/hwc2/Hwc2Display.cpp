@@ -107,6 +107,8 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
     mHeight = h;
   }
 
+  mDisplayControl = {.alpha = 0, .top_layer = 0, .rotation = 0, .viewport = {0, 0, (int16_t)w, (int16_t)h}};
+
 #ifdef ENABLE_HWC_VNC
   // if (property_get("sys.display.vnc", value, nullptr) && (atoi(value) > 0)) {
   int port = 9000 + (int)id;
@@ -464,6 +466,56 @@ Error Hwc2Display::getReleaseFences(uint32_t* numElements,
   return Error::None;
 }
 
+bool Hwc2Display::updateDisplayControl() {
+  if (!mRemoteDisplay)
+    return false;
+
+  bool update = false;
+  bool alphaVideo = (mAlphaVideo != nullptr);
+  if (mDisplayControl.alpha != alphaVideo) {
+    mDisplayControl.alpha = alphaVideo;
+    update = true;
+  }
+  int16_t l = 0, t = 0, r = (int16_t)mWidth, b = (int16_t)mHeight;
+  int32_t rotation = 0;
+  if (mFullScreenMode) {
+    layer_info_t& info = mBypassLayer->info();
+    switch (info.transform) {
+    case HAL_TRANSFORM_ROT_90:
+      rotation = 1;
+      break;
+    case HAL_TRANSFORM_ROT_180:
+      rotation = 2;
+      break;
+    case HAL_TRANSFORM_ROT_270:
+      rotation = 3;
+      break;
+    default:
+      rotation = 0;
+      break;
+    }
+    l = info.dstFrame.left;
+    t = info.dstFrame.top;
+    r = info.dstFrame.right;
+    b = info.dstFrame.bottom;
+  }
+  if (rotation != mDisplayControl.rotation) {
+    mDisplayControl.rotation = rotation;
+    update = true;
+  }
+  if (mDisplayControl.viewport.l != l || mDisplayControl.viewport.t != t ||
+      mDisplayControl.viewport.r != r || mDisplayControl.viewport.b != b) {
+    mDisplayControl.viewport = {l, t, r, b};
+    update = true;
+  }
+  bool multiLayerBypass = mFullScreenMode && (mLayers.size() > 1);
+  if (mDisplayControl.top_layer != multiLayerBypass) {
+    mDisplayControl.top_layer = multiLayerBypass;
+    update = true;
+  }
+  return update;
+}
+
 Error Hwc2Display::present(int32_t* retireFence) {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
 
@@ -501,6 +553,7 @@ Error Hwc2Display::present(int32_t* retireFence) {
     }
 
     if (mShowCurrentFrame) {
+      bool updateCtrl = updateDisplayControl();
       if (acquireFence >= 0) {
         int error = sync_wait(acquireFence, 1000);
         if (error < 0) {
@@ -508,7 +561,7 @@ Error Hwc2Display::present(int32_t* retireFence) {
                 __FUNCTION__, acquireFence, errno, strerror(errno));
         }
       }
-      mRemoteDisplay->displayBuffer(target);
+      mRemoteDisplay->displayBuffer(target, updateCtrl ? &mDisplayControl : nullptr);
     }
   }
 

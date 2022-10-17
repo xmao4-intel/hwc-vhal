@@ -210,19 +210,25 @@ int RemoteDisplay::removeBuffer(buffer_handle_t buffer) {
   return 0;
 }
 
-int RemoteDisplay::displayBuffer(buffer_handle_t buffer) {
+int RemoteDisplay::displayBuffer(buffer_handle_t buffer, const display_control_t* ctrl) {
   ALOGV("RemoteDisplay(%d)::%s", mSocketFd, __func__);
 
   buffer_info_event_t ev;
 
   memset(&ev, 0, sizeof(ev));
   ev.event.type = DD_EVENT_DISPLAY_REQ;
-  ev.event.size = sizeof(ev);
+  ev.event.size = ctrl ? sizeof(ev) + sizeof(display_control_t) : sizeof(ev);
   ev.info.bufferId = (int64_t)buffer;
 
   if (_send(&ev, sizeof(ev)) < 0) {
     ALOGE("RemoteDisplay(%d) failed to send display buffer request", mSocketFd);
     return -1;
+  }
+  if (ctrl) {
+    if (_send(ctrl, sizeof(display_control_t)) < 0) {
+      ALOGE("RemoteDisplay(%d) failed to send display control", mSocketFd);
+      return -1;
+    }
   }
   return 0;
 }

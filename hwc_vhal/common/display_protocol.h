@@ -183,4 +183,15 @@ typedef struct _display_set_video_alpha_event_t {
   display_event_t event;
   set_video_alpha_t alpha;
 } display_set_video_alpha_event_t;
+
+typedef struct _display_control_t {
+  uint32_t alpha         :1;  // alpha video content
+  uint32_t top_layer     :1;  // top layer to be blend
+  uint32_t rotation      :2;  // content is rotated
+  uint32_t reserved      :28;
+  struct {
+    int16_t l, t, r, b;
+  } viewport;
+} display_control_t;
+
 #endif  // _H_DISPLAY_PROTOCOL_

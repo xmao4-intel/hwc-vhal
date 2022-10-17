@@ -124,6 +124,7 @@ class Hwc2Display : public DisplayEventListener {
   int updateRotation();
 
   bool IsBufferVisible(buffer_handle_t bh);
+  bool updateDisplayControl();
 
  protected:
   const char* mName = "PrimaryDisplay";
@@ -186,6 +187,8 @@ class Hwc2Display : public DisplayEventListener {
   std::unique_ptr<AlphaVideo> mAlphaVideo;
   std::set<buffer_handle_t> mAlphaVideoBuffers;
   std::mutex mRenderTaskMutex;
+
+  display_control_t mDisplayControl;
 };
 
 #endif  // __HWC2_DISPLAY_H__

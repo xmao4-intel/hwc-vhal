@@ -38,7 +38,7 @@ class RemoteDisplay {
   int sendDisplayPortReq();
   int createBuffer(buffer_handle_t buffer);
   int removeBuffer(buffer_handle_t buffer);
-  int displayBuffer(buffer_handle_t buffer);
+  int displayBuffer(buffer_handle_t buffer, const display_control_t* ctrl);
   int setRotation(int rotation);
   int createLayer(uint64_t id);
   int removeLayer(uint64_t id);
