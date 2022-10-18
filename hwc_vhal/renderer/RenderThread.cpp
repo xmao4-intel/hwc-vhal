@@ -19,8 +19,7 @@ void RenderTask::wait() {
 }
 
 void RenderThread::init() {
-    mThread = std::unique_ptr<std::thread>(
-    new std::thread(&RenderThread::renderThreadProc, this));
+    mThread = std::make_unique<std::thread>(&RenderThread::renderThreadProc, this);
 }
 
 void RenderThread::deinit() {
@@ -41,9 +40,11 @@ void RenderThread::runTaskAsync(RenderTask* t) {
 
 void RenderThread::runTask(RenderTask* t) {
     if (!t) return;
-    std::unique_lock<std::mutex> lck(mQueueMutex);
-    mSyncTasks.push_back(t);
-    mNewTask.notify_all();
+    {
+        std::unique_lock<std::mutex> lck(mQueueMutex);
+        mSyncTasks.push_back(t);
+        mNewTask.notify_all();
+    }
     t->wait();
 }
 
