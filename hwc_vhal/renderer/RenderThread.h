@@ -14,9 +14,11 @@ public:
     virtual ~RenderTask() {}
     void runIt();
     void wait();
+    void onQueue() { mIsDone = false; }
 
 private:
     virtual int run() = 0;
+    bool mIsDone = false;
     std::mutex mMutex;
     std::condition_variable mDone;
 };

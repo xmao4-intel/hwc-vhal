@@ -10,12 +10,13 @@
 void RenderTask::runIt() {
     std::unique_lock<std::mutex> lck(mMutex);
     run();
-    mDone.notify_all();
+    mIsDone = true;
+    mDone.notify_one();
 }
 
 void RenderTask::wait() {
     std::unique_lock<std::mutex> lck(mMutex);
-    mDone.wait(lck);
+    mDone.wait(lck, [this](){ return mIsDone; });
 }
 
 void RenderThread::init() {
@@ -35,7 +36,8 @@ void RenderThread::runTaskAsync(RenderTask* t) {
     if (!t) return;
     std::unique_lock<std::mutex> lck(mQueueMutex);
     mAsyncTasks.push_back(t);
-    mNewTask.notify_all();
+    t->onQueue();
+    mNewTask.notify_one();
 }
 
 void RenderThread::runTask(RenderTask* t) {
@@ -43,7 +45,8 @@ void RenderThread::runTask(RenderTask* t) {
     {
         std::unique_lock<std::mutex> lck(mQueueMutex);
         mSyncTasks.push_back(t);
-        mNewTask.notify_all();
+        t->onQueue();
+        mNewTask.notify_one();
     }
     t->wait();
 }
