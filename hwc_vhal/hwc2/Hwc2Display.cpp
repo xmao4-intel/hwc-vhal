@@ -543,23 +543,34 @@ Error Hwc2Display::present(int32_t* retireFence) {
           target = layer.buffer();
         }
       }
-      mAlphaVideo->setBuffer(target);
-      mRenderThread->runTask(mAlphaVideo.get());
-      target = mAlphaVideo->getOutputHandle();
-
-      if (mAlphaVideoBuffers.find(target) == mAlphaVideoBuffers.end()) {
-        mAlphaVideoBuffers.insert(target);
-        mRemoteDisplay->createBuffer(target);
+      int32_t format = -1;
+      if (target) {
+        BufferMapper::getMapper().getBufferFormat(target, format);
       }
-    } else if (!mFullScreenMode) {
-      target = mFbTarget;
-      acquireFence = mFbAcquireFenceFd;
-    } else {
-      target = mBypassLayer->buffer();
-      acquireFence = mBypassLayer->acquireFence();
-       if (mFullScreenBuffers.find((int64_t)target) == mFullScreenBuffers.end()) {
-        mFullScreenBuffers.insert(std::make_pair(((int64_t)target), target));
-        mRemoteDisplay->createBuffer(target);
+      if (HAL_PIXEL_FORMAT_RGBA_8888 == format) {
+        mAlphaVideo->setBuffer(target);
+        mRenderThread->runTask(mAlphaVideo.get());
+        target = mAlphaVideo->getOutputHandle();
+
+        if (target && mAlphaVideoBuffers.find(target) == mAlphaVideoBuffers.end()) {
+          mAlphaVideoBuffers.insert(target);
+          mRemoteDisplay->createBuffer(target);
+        }
+      } else {
+          target = nullptr;
+      }
+    }
+    if (target == nullptr) {
+      if (!mFullScreenMode) {
+        target = mFbTarget;
+        acquireFence = mFbAcquireFenceFd;
+      } else {
+        target = mBypassLayer->buffer();
+        acquireFence = mBypassLayer->acquireFence();
+        if (mFullScreenBuffers.find((int64_t)target) == mFullScreenBuffers.end()) {
+          mFullScreenBuffers.insert(std::make_pair(((int64_t)target), target));
+          mRemoteDisplay->createBuffer(target);
+        }
       }
     }
 
