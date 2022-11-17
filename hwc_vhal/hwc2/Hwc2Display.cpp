@@ -142,6 +142,7 @@ int Hwc2Display::attach(RemoteDisplay* rd) {
   if (!rd)
     return -1;
 
+  std::unique_lock<std::mutex> lck(mRemoteDisplayMutex);
   mRemoteDisplay = rd;
   mRemoteDisplay->setDisplayEventListener(this);
   mPort = (mDisplayID != kPrimayDisplay) ?  mRemoteDisplay->port() : 0;
@@ -165,6 +166,7 @@ int Hwc2Display::attach(RemoteDisplay* rd) {
 }
 
 int Hwc2Display::detach(RemoteDisplay* rd) {
+  std::unique_lock<std::mutex> lck(mRemoteDisplayMutex);
   if (rd == mRemoteDisplay) {
     mFbtBuffers.clear();
     mFullScreenBuffers.clear();
@@ -184,8 +186,8 @@ int Hwc2Display::onPresented(std::vector<layer_buffer_info_t>& layerBuffer,
                              int& fence) {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
 
-  display_flags flags;
-  flags.value = mRemoteDisplay->flags();
+  //display_flags flags;
+  //flags.value = mRemoteDisplay->flags();
   // mMode = flags.mode;
 
   return 0;
@@ -206,6 +208,7 @@ int Hwc2Display::onSetVideoAlpha(int action) {
       mAlphaVideo = std::make_unique<AlphaVideo>();
     }
   } else {
+    std::unique_lock<std::mutex> lck(mRemoteDisplayMutex);
     if (mRemoteDisplay) {
       for ( auto buffer : mAlphaVideoBuffers) {
         mRemoteDisplay->removeBuffer(buffer);
@@ -253,6 +256,7 @@ Error Hwc2Display::createLayer(hwc2_layer_t* layer) {
   LAYER_TRACE("Hwc2Display(%" PRIu64 ")::%s mode=%d layerId=%" PRIx64,
               mDisplayID, __func__, mMode, mLayerIndex);
 
+  std::unique_lock<std::mutex> lck(mRemoteDisplayMutex);
   if (mRemoteDisplay && mMode > 0) {
     mRemoteDisplay->createLayer(mLayerIndex);
   }
@@ -269,6 +273,7 @@ Error Hwc2Display::destroyLayer(hwc2_layer_t layer) {
   LAYER_TRACE("Hwc2Display(%" PRIu64 ")::%s mode=%d layerId=%" PRIx64,
               mDisplayID, __func__, mMode, mLayerIndex);
 
+  std::unique_lock<std::mutex> lck(mRemoteDisplayMutex);
   if (mRemoteDisplay && mMode > 0) {
     mRemoteDisplay->removeLayer(layer);
   }
@@ -381,13 +386,18 @@ Error Hwc2Display::getAttribute(hwc2_config_t config,
 Error Hwc2Display::getConfigs(uint32_t* num_configs, hwc2_config_t* configs) {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
 
-  for (auto buffer : mFullScreenBuffers) {
-    mRemoteDisplay->removeBuffer(buffer.second);
+  std::unique_lock<std::mutex> lck(mRemoteDisplayMutex);
+  if (mRemoteDisplay) {
+    for (auto buffer : mFullScreenBuffers) {
+      mRemoteDisplay->removeBuffer(buffer.second);
+    }
   }
   mFullScreenBuffers.clear();
 
-  for (auto buffer : mFbtBuffers) {
-    mRemoteDisplay->removeBuffer(buffer);
+  if (mRemoteDisplay) {
+    for (auto buffer : mFbtBuffers) {
+      mRemoteDisplay->removeBuffer(buffer);
+    }
   }
   mFbtBuffers.clear();
 
@@ -467,7 +477,7 @@ Error Hwc2Display::getReleaseFences(uint32_t* numElements,
 }
 
 bool Hwc2Display::updateDisplayControl() {
-  if (!mRemoteDisplay)
+  if (!mRemoteDisplay) // called locked
     return false;
 
   bool update = false;
@@ -521,6 +531,7 @@ Error Hwc2Display::present(int32_t* retireFence) {
 
   buffer_handle_t target = nullptr;
   int32_t acquireFence = -1;
+  std::unique_lock<std::mutex> lck(mRemoteDisplayMutex);
   if (mRemoteDisplay) {
     std::unique_lock<std::mutex> lck(mRenderTaskMutex);
     if (mAlphaVideo != nullptr && mRenderThread != nullptr) {
@@ -664,6 +675,7 @@ Error Hwc2Display::setClientTarget(buffer_handle_t target,
   }
   mFbAcquireFenceFd = acquireFence;
 
+  std::unique_lock<std::mutex> lck(mRemoteDisplayMutex);
   if (mRemoteDisplay) {
     bool isNew = true;
 
@@ -939,6 +951,8 @@ bool Hwc2Display::checkFullScreenMode() {
 void Hwc2Display::exitFullScreenMode() {
   ALOGD("Exit fullscreen mode");
 
+  // Don't call it in mRemoteDisplayMutex locked
+  std::unique_lock<std::mutex> lck(mRemoteDisplayMutex);
   if (mRemoteDisplay) {
     for (auto buffer : mFullScreenBuffers) {
       mRemoteDisplay->removeBuffer(buffer.second);
@@ -1045,7 +1059,7 @@ if (mFullscreenOpt) {
 int Hwc2Display::updateRotation() {
   ALOGV("Hwc2Display(%" PRIu64 ")::%s", mDisplayID, __func__);
 
-  if (!mRemoteDisplay)
+  if (!mRemoteDisplay) // called locked
     return 0;
 
   uint32_t tr = 0;

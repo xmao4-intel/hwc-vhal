@@ -162,6 +162,7 @@ class Hwc2Display : public DisplayEventListener {
 
   // remote display
   RemoteDisplay* mRemoteDisplay = nullptr;
+  std::mutex mRemoteDisplayMutex;
   uint32_t mVersion = 0;
   uint32_t mMode = 0;
   int mReleaseFence = -1;
