@@ -234,6 +234,10 @@ void RemoteDisplayMgr::socketThreadProc() {
   }
 
   while (true) {
+    if (NULL == mHwcDevice) {
+      ALOGE("RemoteDisplayMgr::socketThreadProc is exiting!");
+      break;
+    }
     struct epoll_event events[kMaxEvents];
     int nfds = epoll_wait(mEpollFd, events, kMaxEvents, -1);
     if (nfds < 0) {

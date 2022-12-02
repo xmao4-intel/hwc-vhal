@@ -780,6 +780,10 @@ bool Hwc2Display::VsyncThread::threadLoop() {
   int64_t currentNs = 0;
 
   while (true) {
+    if (mDisplay.mFramerate <= 0) {
+      ALOGE("VsyncThread::threadLoop is exiting!");
+      break;
+    }
     clock_gettime(CLOCK_MONOTONIC, &rt);
     currentNs = rt.tv_nsec + rt.tv_sec * kOneSecondNs;
 
