@@ -894,6 +894,10 @@ bool Hwc2Display::checkMultiLayerVideoBypass() {
     return false;
   }
 
+  // Rotated video is not supported
+  if (videoLayer->info().transform != 0)
+    return false;
+
   // force video bypass or video layer is the only buffer layer
   if (mForceVideoBypass || bufferLayerCount == 1) {
     mBypassLayer = videoLayer;
