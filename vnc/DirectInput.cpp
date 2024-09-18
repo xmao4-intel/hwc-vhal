@@ -22,6 +22,7 @@ DirectInputReceiver::~DirectInputReceiver() {
 }
 
 bool DirectInputReceiver::CreateTouchDevice(int id) {
+  (void)id;
   CLOGV("%s", __func__);
 
   // Todo: use socket to support multiple input for each display
@@ -103,6 +104,8 @@ bool DirectInputReceiver::SendDown(int32_t slot,
 }
 
 bool DirectInputReceiver::SendUp(int32_t slot, int32_t x, int32_t y) {
+  (void)x;
+  (void)y;
   CLOGV("%s", __func__);
 
   if (mEnabledSlots == 0 || (uint32_t)slot >= kMaxSlot ||
@@ -286,12 +289,14 @@ int DirectInputReceiver::onKeyCode(uint16_t scanCode, uint32_t mask) {
 }
 
 int DirectInputReceiver::onKeyChar(char ch) {
+  (void)ch;
   CLOGV("%s", __func__);
 
   return 0;
 }
 
 int DirectInputReceiver::onText(const char* msg) {
+  (void)msg;
   CLOGV("%s", __func__);
 
   return 0;

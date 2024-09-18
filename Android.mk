@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+TARGET_USE_HWCOMPOSER_VHAL := true
+
 ifeq ($(TARGET_USE_HWCOMPOSER_VHAL), true)
 
 LOCAL_PATH := $(call my-dir)
@@ -24,8 +26,8 @@ include $(CLEAR_VARS)
 TARGET_USES_HWC2 := true
 
 # HWC VNC is only used for internal test, please don't enable it for external release
-#ENABLE_HWC_VNC := true
-#ENABLE_HWC_VNC_TEST := true
+ENABLE_HWC_VNC := true
+ENABLE_HWC_VNC_TEST := true
 #ENABLE_LAYER_DUMP := true
 #VIDEO_STREAMING_OPT := true
 
@@ -111,7 +113,7 @@ LOCAL_C_INCLUDES += \
         external/zlib \
         $(LOCAL_PATH)/vnc \
 
-LOCAL_STATIC_LIBRARIES := libvncserver libz libpng libjpeg libssl libcrypto
+LOCAL_STATIC_LIBRARIES := libvncserver libz libpng libjpeg libssl
 endif
 
 LOCAL_C_INCLUDES += \
@@ -128,7 +130,8 @@ LOCAL_SHARED_LIBRARIES := \
         libsync \
         libui \
         libEGL \
-        libGLESv2 \
+        libGLESv3 \
+        libcrypto
 
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE := hwcomposer.intel_sw
@@ -160,6 +163,7 @@ LOCAL_SHARED_LIBRARIES := \
         libcutils \
         libutils \
         libhardware \
+        libcrypto
 
 LOCAL_STATIC_LIBRARIES := \
         libvncserver \
@@ -167,7 +171,6 @@ LOCAL_STATIC_LIBRARIES := \
         libpng \
         libjpeg \
         libssl \
-        libcrypto\
 
 LOCAL_MODULE:= vncdisplay-test
 

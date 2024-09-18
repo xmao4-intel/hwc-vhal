@@ -114,6 +114,8 @@ void VncDisplay::handleKeyboard(ClientContext* ctx,
                                 rfbKeySym key) {
   ALOGV("%s", __func__);
 
+  (void)ctx;
+
   if (mInputReceiver && down) {
     mInputReceiver->onKeyCode(keySymToScanCode(key), keySymToMask(key));
     // ALOGD("keyboard event:down=%d key=%d\n", down, key);

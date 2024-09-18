@@ -2,6 +2,8 @@
 
 #if 1
 int main(int argc, char* argv[]) {
+    (void)argc;
+    (void)argv;
 
     VncDisplay* vd = new VncDisplay(9000, 640, 480);
     if (!vd) {
