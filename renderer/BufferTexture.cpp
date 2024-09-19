@@ -1,5 +1,6 @@
 #include "BufferTexture.h"
 #include "BufferMapper.h"
+#include <ui/GraphicBuffer.h>
 #include <cutils/log.h>
 
 //#define DEBUG_GL
@@ -30,10 +31,14 @@ BufferTexture::BufferTexture(buffer_handle_t b, bool fbo) {
     uint64_t usage = GraphicBuffer::USAGE_HW_TEXTURE;
     GLenum target = fbo ? GL_TEXTURE_2D : GL_TEXTURE_EXTERNAL_OES;
 
-    BufferMapper& mapper = BufferMapper::getMapper();
-    mapper.getBufferSize(b, mWidth, mHeight);
-    mapper.getBufferFormat(b, mFormat);
-    mapper.getBufferStride(b, stride);
+    //BufferMapper& mapper = BufferMapper::getMapper();
+    //mapper.getBufferSize(b, mWidth, mHeight);
+    //mapper.getBufferFormat(b, mFormat);
+    //mapper.getBufferStride(b, stride);
+    mWidth = 1280;
+    mHeight= 720;
+    mFormat = HAL_PIXEL_FORMAT_RGBA_8888;
+    stride = 1280;
 
     mBuffer = new GraphicBuffer(b, GraphicBuffer::WRAP_HANDLE, mWidth, mHeight, mFormat, 1, usage, stride);
     EGLClientBuffer clientBuffer = (EGLClientBuffer)mBuffer->getNativeBuffer();

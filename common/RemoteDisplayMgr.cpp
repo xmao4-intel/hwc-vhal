@@ -207,7 +207,7 @@ void RemoteDisplayMgr::socketThreadProc() {
   if ((p_env != NULL) && strcmp(p_env, "true") == 0)
     sprintf(kServerSockId,"%s","/conn/hwc-sock");
   else
-    sprintf(kServerSockId,"%s%s","/ipc/hwc-sock",value);
+    sprintf(kServerSockId,"%s%s","/data/local/tmp//hwc-sock",value);
 
   setNonblocking(mServerFd);
   addEpollFd(mServerFd);

@@ -12,6 +12,9 @@
 
 #include "input_interface.h"
 
+#include "BufferTexture.h"
+#include "RenderThread.h"
+
 class VncDisplayObserver {
  public:
   virtual ~VncDisplayObserver() {}
@@ -54,11 +57,13 @@ class VncDisplay {
   rfbScreenInfoPtr mScreen = nullptr;
 
   int mPort = 9000;
-  uint32_t mWidth = 720;
-  uint32_t mHeight = 1280;
+  uint32_t mWidth = 1280;
+  uint32_t mHeight = 720;
   uint32_t mBytesPerPixel = 4;
   uint8_t* mFramebuffer = nullptr;
 
   IInputReceiver* mInputReceiver = nullptr;
+
+  std::unique_ptr<RenderThread> mRenderThread;
 };
 #endif

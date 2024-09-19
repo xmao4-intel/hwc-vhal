@@ -1,4 +1,4 @@
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 
 #include <errno.h>
 #include <inttypes.h>
@@ -113,13 +113,15 @@ Hwc2Display::Hwc2Display(hwc2_display_t id, Hwc2Device& device)
   int port = 9000 + (int)id;
   mVncDisplay = new VncDisplay(port, mWidth, mHeight);
   if (mVncDisplay && mVncDisplay->init() < 0) {
+    ALOGD("Failed to init VNC display");
     delete mVncDisplay;
     mVncDisplay = nullptr;
   }
   // }
 #endif
-  mVsyncThread.run("", -19 /* ANDROID_PRIORITY_URGENT_AUDIO */);
-  BufferMapper::getMapper().addCallback(onGrallocCallbackHook, this);
+  ALOGD("run vsync thread...");
+  //mVsyncThread.run("", -19 /* ANDROID_PRIORITY_URGENT_AUDIO */);
+  //BufferMapper::getMapper().addCallback(onGrallocCallbackHook, this);
 
 }
 

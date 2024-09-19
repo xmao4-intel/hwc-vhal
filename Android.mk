@@ -58,12 +58,12 @@ LOCAL_CPPFLAGS += \
         -DSUPPORT_HWC_2_1 \
         -DSUPPORT_HWC_2_2
 endif
-ifneq ($(filter 10 11, $(PLATFORM_VERSION)),)
+#ifneq ($(filter 10 11, $(PLATFORM_VERSION)),)
 LOCAL_CPPFLAGS += \
         -DSUPPORT_HWC_2_1 \
         -DSUPPORT_HWC_2_2 \
         -DSUPPORT_HWC_2_3
-endif
+#endif
 
 ifeq ($(VIDEO_STREAMING_OPT),true)
 LOCAL_CPPFLAGS += -DVIDEO_STREAMING_OPT

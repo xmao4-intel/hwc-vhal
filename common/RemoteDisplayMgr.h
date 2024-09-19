@@ -50,7 +50,7 @@ class RemoteDisplayMgr : public DisplayStatusListener {
   int delEpollFd(int fd);
 
  private:
-  const char* kClientSock = "/ipc/display-sock";
+  const char* kClientSock = "/data/local/tmp/display-sock";
 
   std::unique_ptr<IRemoteDevice> mHwcDevice;
   int mClientFd = -1;

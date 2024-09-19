@@ -1,4 +1,4 @@
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 
 #define CLOGV ALOGV
 #define CLOGD ALOGD
@@ -34,7 +34,7 @@ bool DirectInputReceiver::CreateTouchDevice(int id) {
   } else if (dir && (strlen(dir) + strlen(kDevName) < 256)) {
     snprintf(path, 256, "%s/%s", dir, kDevName);
   } else {
-    snprintf(path, 256, "%s/%s", "./workdir", kDevName);
+    snprintf(path, 256, "%s", "/data/local/tmp/input-pipe");
   }
 
   mFd = open(path, O_RDWR | O_NONBLOCK, 0);

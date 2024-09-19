@@ -1,4 +1,4 @@
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 
 #include <errno.h>
 #include <inttypes.h>
@@ -32,6 +32,7 @@ Hwc2Device::Hwc2Device() {
 Error Hwc2Device::init() {
   ALOGV("%s", __func__);
 
+#ifdef SUPPORT_BUFFER_SHARE
   concurrent_user = property_get_bool("ro.fw.concurrent.user", false);
   primary_reconfig = property_get_bool("ro.hwc_vhal.primary_reconfig", false);
   mRemoteDisplayMgr = std::unique_ptr<RemoteDisplayMgr>(new RemoteDisplayMgr());
@@ -46,6 +47,12 @@ Error Hwc2Device::init() {
     mDisplays.emplace(kPrimayDisplay, std::move(display));
     onHotplug(kPrimayDisplay, HWC2_CONNECTION_CONNECTED);
   }
+#else
+  server_mode = true;
+  auto display = std::make_shared<Hwc2Display>(0,*this);
+  mDisplays.emplace(kPrimayDisplay, std::move(display));
+  onHotplug(kPrimayDisplay, HWC2_CONNECTION_CONNECTED);
+#endif
 
 #ifdef ENABLE_HWC_VNC
   VncDisplay::addVncDisplayObserver(this);
@@ -199,8 +206,10 @@ Error Hwc2Device::registerCallback(int32_t descriptor,
   if (function != nullptr) {
     if (registed && HWC2_CALLBACK_HOTPLUG == descriptor) {
       if(!server_mode) {
+#ifdef SUPPORT_BUFFER_SHARE
         mRemoteDisplayMgr->disconnectToRemote();
         mRemoteDisplayMgr->connectToRemote();
+#endif
       } else {
         onHotplug(kPrimayDisplay, HWC2_CONNECTION_CONNECTED);
       }
@@ -210,7 +219,7 @@ Error Hwc2Device::registerCallback(int32_t descriptor,
     ALOGI("unregisterCallback(%s)", getCallbackDescriptorName(desc));
     mCallbacks.erase(desc);
     if (HWC2_CALLBACK_HOTPLUG == descriptor) {
-	sNextId--;
+	    sNextId--;
     }
     return Error::None;
   }

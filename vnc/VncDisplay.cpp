@@ -1,10 +1,36 @@
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 #include <cutils/log.h>
 
-#include "BufferMapper.h"
+#include <ui/GraphicBufferMapper.h>
+
+//#include "BufferMapper.h"
 #include "DirectInput.h"
 #include "Keymap.h"
 #include "VncDisplay.h"
+
+class FastBufferRead : public RenderTask {
+public:
+    FastBufferRead(buffer_handle_t b, void* data) {
+      mHandle = b;
+      mOut = data;
+    }
+    int run() override {
+      BufferTexture bufTex(mHandle, true);
+      uint32_t w = bufTex.getWidth();
+      uint32_t h = bufTex.getHeight();
+      int32_t f = bufTex.getFormat();
+      if (f != HAL_PIXEL_FORMAT_RGBA_8888) {
+          ALOGD("FastBufferRead: Skip to dump format %d", f);
+          return 0;
+      }
+      glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, mOut);
+      //CHECK();
+      return 0;
+    }
+private:
+  buffer_handle_t mHandle;
+  void* mOut = nullptr;
+};
 
 int VncDisplay::sClientCount = 0;
 std::vector<VncDisplayObserver*> VncDisplay::sObservers;
@@ -162,22 +188,37 @@ int VncDisplay::init() {
 int VncDisplay::postFb(buffer_handle_t fb) {
   ALOGV("%s", __func__);
 
-  uint8_t* rgb = nullptr;
-  uint32_t stride = 0;
+  bool use_gl_readback = true;
 
+  uint8_t* rgb = nullptr;
+  int32_t stride = 0, bpp = 0;
+ALOGD("sClientCount=%d w=%d h=%d", sClientCount, mWidth, mHeight);
+  
   if (sClientCount > 0) {
-    auto& mapper = BufferMapper::getMapper();
-    mapper.lockBuffer(fb, rgb, stride);
-    if (rgb) {
-      for (uint32_t i = 0; i < mHeight; i++) {
-        memcpy(mFramebuffer + i * mWidth * 4, rgb + i * stride * 4, mWidth * 4);
+    if (use_gl_readback) {
+      if (mRenderThread == nullptr) {
+        mRenderThread = std::make_unique<RenderThread>();
+        mRenderThread->init();
       }
+      auto fbr = new FastBufferRead(fb, mFramebuffer);
+      mRenderThread->runTask(fbr);
     } else {
-      ALOGE("Failed to lock front buffer\n");
+      auto& mapper = android::GraphicBufferMapper::get();
+      android::Rect bounds(0, 0, mWidth, mHeight);
+      mapper.lock(fb, GRALLOC_USAGE_SW_READ_OFTEN, bounds, (void**)&rgb, &bpp, &stride);
+      ALOGD("locked addr=%p bpp=%d stride=%d", rgb, bpp, stride); 
+      if (rgb) {
+        for (uint32_t i = 0; i < mHeight; i++) {
+          memcpy(mFramebuffer + i * mWidth * 4, rgb + i * stride, mWidth * 4);
+        }
+      } else {
+        ALOGE("Failed to lock front buffer\n");
+      }
+      mapper.unlock(fb);
     }
-    mapper.unlockBuffer(fb);
     rfbMarkRectAsModified(mScreen, 0, 0, mWidth, mHeight);
   }
+ALOGD("%s:%d", __FILE__, __LINE__);   
   return 0;
 }
 
