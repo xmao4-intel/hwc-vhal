@@ -64,6 +64,7 @@ class VncDisplay {
 
   IInputReceiver* mInputReceiver = nullptr;
 
+  bool mUseGLReadback = false;
   std::unique_ptr<RenderThread> mRenderThread;
 };
 #endif

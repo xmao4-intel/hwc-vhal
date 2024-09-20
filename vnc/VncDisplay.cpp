@@ -1,5 +1,6 @@
 #define LOG_NDEBUG 0
 #include <cutils/log.h>
+#include <cutils/properties.h>
 
 #include <ui/GraphicBufferMapper.h>
 
@@ -38,6 +39,11 @@ std::vector<VncDisplayObserver*> VncDisplay::sObservers;
 VncDisplay::VncDisplay(int port, int w, int h)
     : mPort(port), mWidth(w), mHeight(h) {
   ALOGV("%s", __func__);
+  char value[PROPERTY_VALUE_MAX];
+  if (property_get("ro.hardware.gralloc", value, nullptr) > 0) {
+    if (strncmp(value, "default", 4) != 0)
+      mUseGLReadback = true;
+  }
 }
 
 VncDisplay::~VncDisplay() {
@@ -188,14 +194,11 @@ int VncDisplay::init() {
 int VncDisplay::postFb(buffer_handle_t fb) {
   ALOGV("%s", __func__);
 
-  bool use_gl_readback = true;
-
   uint8_t* rgb = nullptr;
   int32_t stride = 0, bpp = 0;
-ALOGD("sClientCount=%d w=%d h=%d", sClientCount, mWidth, mHeight);
   
   if (sClientCount > 0) {
-    if (use_gl_readback) {
+    if (mUseGLReadback) {
       if (mRenderThread == nullptr) {
         mRenderThread = std::make_unique<RenderThread>();
         mRenderThread->init();
