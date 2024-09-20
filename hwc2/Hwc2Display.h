@@ -5,6 +5,7 @@
 #include <set>
 #include <memory>
 #include <vector>
+#include <optional>
 
 #include <hardware/hwcomposer2.h>
 #include "Hwc2Layer.h"
@@ -19,6 +20,17 @@
 #ifdef ENABLE_HWC_VNC
 #include "VncDisplay.h"
 #endif
+
+//TODO: include HWC3 headers
+struct ClockMonotonicTimestamp {
+    int64_t timestampNanos;
+};
+typedef enum {
+    HWC3_FUNCTION_SET_EXPECTED_PRESENT_TIME = HWC2_FUNCTION_GET_LAYER_GENERIC_METADATA_KEY + 1,
+} hwc3_function_descriptor_t;
+typedef int32_t /*hwc_error_t*/ (*HWC3_PFN_SET_EXPECTED_PRESENT_TIME)(hwc2_device_t* device,
+        hwc2_display_t display, const std::optional<ClockMonotonicTimestamp>& expectedPresentTime);
+
 
 class RemoteDisplay;
 class Hwc2Device;
@@ -104,6 +116,15 @@ class Hwc2Display : public DisplayEventListener {
   HWC2::Error getCapabilities(uint32_t* outNumCapabilities, uint32_t* outCapabilities);
   HWC2::Error setBrightness(float brightness);
   HWC2::Error getIdentificationData(uint8_t* outPort, uint32_t* outDataSize, uint8_t* outData);
+
+  HWC2::Error GetDisplayVsyncPeriod(uint32_t *outVsyncPeriod);
+  HWC2::Error SetActiveConfigWithConstraints(
+      hwc2_config_t config,
+      hwc_vsync_period_change_constraints_t *vsyncPeriodChangeConstraints,
+      hwc_vsync_period_change_timeline_t *outTimeline);
+
+  HWC2::Error setExpectedPresentTime(
+      const std::optional<ClockMonotonicTimestamp>& expectedPresentTime);
 
   bool checkMultiLayerVideoBypass();
   bool checkFullScreenMode();

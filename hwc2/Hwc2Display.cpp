@@ -1132,3 +1132,22 @@ void Hwc2Display::dump() {
     l.second.dump();
   }
 }
+
+HWC2::Error Hwc2Display::GetDisplayVsyncPeriod(
+    uint32_t *outVsyncPeriod /* ns */) {
+  return getAttribute(mConfig,
+                      HWC2_ATTRIBUTE_VSYNC_PERIOD,
+                      (int32_t *)(outVsyncPeriod));
+}
+
+HWC2::Error Hwc2Display::SetActiveConfigWithConstraints(
+    hwc2_config_t config,
+    hwc_vsync_period_change_constraints_t *vsyncPeriodChangeConstraints,
+    hwc_vsync_period_change_timeline_t *outTimeline) {
+      return HWC2::Error::SeamlessNotAllowed;
+}
+
+HWC2::Error Hwc2Display::setExpectedPresentTime(
+    const std::optional<ClockMonotonicTimestamp>& expectedPresentTime) {
+  return HWC2::Error::None;
+}

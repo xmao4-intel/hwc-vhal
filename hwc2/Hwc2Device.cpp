@@ -493,11 +493,29 @@ hwc2_function_pointer_t Hwc2Device::getFunctionHook(struct hwc2_device* dev,
     case FunctionDescriptor::SetLayerPerFrameMetadataBlobs:
 #endif
 
+    case HWC2::FunctionDescriptor::GetDisplayVsyncPeriod:
+      return asFP<HWC2_PFN_GET_DISPLAY_VSYNC_PERIOD>(
+          DisplayHook<decltype(&Hwc2Display::GetDisplayVsyncPeriod),
+              &Hwc2Display::GetDisplayVsyncPeriod, uint32_t*>);
+
+    case HWC2::FunctionDescriptor::SetActiveConfigWithConstraints:
+      return asFP<HWC2_PFN_SET_ACTIVE_CONFIG_WITH_CONSTRAINTS>(
+          DisplayHook<decltype(&Hwc2Display::SetActiveConfigWithConstraints),
+                      &Hwc2Display::SetActiveConfigWithConstraints,
+                      hwc2_config_t, hwc_vsync_period_change_constraints_t *,
+                      hwc_vsync_period_change_timeline_t *>);
+
     case FunctionDescriptor::Invalid:
     default:
-      ALOGE("%s:Unsupported HWC2 function, descriptor=%d", __func__,
-            descriptor);
-      return nullptr;
+      if (descriptor == HWC3_FUNCTION_SET_EXPECTED_PRESENT_TIME)
+        return asFP<HWC3_PFN_SET_EXPECTED_PRESENT_TIME>(
+            DisplayHook<decltype(&Hwc2Display::setExpectedPresentTime),
+                        &Hwc2Display::setExpectedPresentTime, const std::optional<ClockMonotonicTimestamp>&>);
+      else {
+        ALOGE("%s:Unsupported HWC2 function, descriptor=%d", __func__,
+              descriptor);
+        return nullptr;
+      }
   }
 }
 
