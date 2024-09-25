@@ -64,5 +64,9 @@ class DirectInputReceiver : public IInputReceiver {
   Contact mContacts[kMaxSlot];
   int32_t mTrackingId = 0;
   uint32_t mEnabledSlots = 0;
+
+  bool mUseInputServer = false;
+  const char* kInputServerIP = "127.0.0.1";
+  const uint16_t kInputServerPort = 9900;
 };
 #endif  //__DIRECT_INPUT_RECEIVER_H__

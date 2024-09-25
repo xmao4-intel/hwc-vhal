@@ -1,6 +1,7 @@
 //#define LOG_NDEBUG 0
 
 #include <cutils/log.h>
+#include <cutils/properties.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +14,8 @@
 
 DirectInputReceiver::DirectInputReceiver(int id) {
   ALOGV("%s", __func__);
+
+  mUseInputServer = property_get_bool("debug.input.input_server", false);
 
   CreateTouchDevice(id);
 }
@@ -29,11 +32,7 @@ bool DirectInputReceiver::CreateTouchDevice(int id) {
   (void)id;
   ALOGV("%s", __func__);
 
-#define USE_INPUT_SERVER 1
-#define INPUT_SERVER_PORT  9900
-#define INPUT_SERVER_IP  "127.0.0.1"
-
-#ifdef USE_INPUT_SERVER
+  if (mUseInputServer) {
     struct sockaddr_in addr;
 
     mFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -43,8 +42,8 @@ bool DirectInputReceiver::CreateTouchDevice(int id) {
     }
 
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(INPUT_SERVER_PORT);
-    if (inet_pton(AF_INET, INPUT_SERVER_IP, &addr.sin_addr) <= 0) {
+    addr.sin_port = htons(kInputServerPort);
+    if (inet_pton(AF_INET, kInputServerIP, &addr.sin_addr) <= 0) {
         ALOGE("Not supported ip and port");
         close(mFd);
         mFd = -1;
@@ -57,15 +56,14 @@ bool DirectInputReceiver::CreateTouchDevice(int id) {
         mFd = -1;
         return false;
     }
-    return true;
-#else
-  const char* path = "/data/virtual-input";
-  mFd = open(path, O_RDWR | O_NONBLOCK, 0);
-  if (mFd < 0) {
-    ALOGE("Failed to open pipe for read:%s", strerror(errno));
-    return false;
+  } else {
+    const char* path = "/data/system/input-pipe";
+    mFd = open(path, O_RDWR | O_NONBLOCK, 0);
+    if (mFd < 0) {
+      ALOGE("Failed to open pipe for read:%s", strerror(errno));
+      return false;
+    }
   }
-#endif
   return true;
 }
 

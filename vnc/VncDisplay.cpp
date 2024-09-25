@@ -40,8 +40,8 @@ VncDisplay::VncDisplay(int port, int w, int h)
     : mPort(port), mWidth(w), mHeight(h) {
   ALOGV("%s", __func__);
   char value[PROPERTY_VALUE_MAX];
-  if (property_get("ro.hardware.gralloc", value, nullptr) > 0) {
-    if (strncmp(value, "default", 4) != 0)
+  if (property_get("vendor.egl.set", value, nullptr) > 0) {
+    if (strncmp(value, "mesa", 4) == 0)
       mUseGLReadback = true;
   }
 }
