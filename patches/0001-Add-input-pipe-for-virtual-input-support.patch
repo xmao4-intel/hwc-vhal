@@ -1,0 +1,540 @@
+From 7d32b394b7ec0e23757873146c3feda4780b46b5 Mon Sep 17 00:00:00 2001
+From: Marc Mao <marc.mao@intel.com>
+Date: Wed, 25 Sep 2024 13:21:00 +0800
+Subject: [PATCH] Add input-pipe for virtual input support
+
+Signed-off-by: Marc Mao <marc.mao@intel.com>
+---
+ services/inputflinger/reader/EventHub.cpp     | 476 +++++++++++++++++-
+ .../inputflinger/reader/include/EventHub.h    |   9 +
+ 2 files changed, 484 insertions(+), 1 deletion(-)
+
+diff --git a/services/inputflinger/reader/EventHub.cpp b/services/inputflinger/reader/EventHub.cpp
+index a005afbff7..5328f14709 100644
+--- a/services/inputflinger/reader/EventHub.cpp
++++ b/services/inputflinger/reader/EventHub.cpp
+@@ -1057,7 +1057,9 @@ status_t EventHub::getAbsoluteAxisValue(int32_t deviceId, int32_t axis, int32_t*
+         std::scoped_lock _l(mLock);
+ 
+         Device* device = getDeviceLocked(deviceId);
+-        if (device != nullptr && device->hasValidFd() && device->absBitmask.test(axis)) {
++        if (device != nullptr && device->hasValidFd() && device->identifier.product == PRODUCT_VIRTUAL_INPUT) {
++            return getVirtualAbsoluteAxisValueLocked(device, axis, outValue);
++        } else if (device != nullptr && device->hasValidFd() && device->absBitmask.test(axis)) {
+             struct input_absinfo info;
+             if (ioctl(device->fd, EVIOCGABS(axis), &info)) {
+                 ALOGW("Error reading absolute controller %d for device %s fd %d, errno=%d", axis,
+@@ -2063,6 +2065,9 @@ void EventHub::scanDevicesLocked() {
+     if (mDevices.find(ReservedInputDeviceId::VIRTUAL_KEYBOARD_ID) == mDevices.end()) {
+         createVirtualKeyboardLocked();
+     }
++
++    // create virtual input
++    openVirturalInputDeviceLocked("/data/system/input-pipe", "virtual-input");
+ }
+ 
+ // ----------------------------------------------------------------------------
+@@ -2835,4 +2840,473 @@ std::string EventHub::AssociatedDevice::dump() const {
+                         batteryInfos.size(), lightInfos.size());
+ }
+ 
++status_t EventHub::getVirtualAbsoluteAxisValueLocked(Device* device, int32_t axis,
++                                                     int32_t* outValue) const {
++    ALOGV("%s:deviceId=%d, axis=%d", __func__, (device ? device->id : -1), axis);
++
++    *outValue = 0;
++
++    if (device && device->hasValidFd() && device->absBitmask.test(axis)) {
++        switch (axis) {
++            case ABS_MT_SLOT:
++                *outValue = 0;
++                break;
++            case ABS_MT_TOUCH_MAJOR:
++                *outValue = 0;
++                break;
++            case ABS_MT_POSITION_X:
++                *outValue = 0;
++                break;
++            case ABS_MT_POSITION_Y:
++                *outValue = 0;
++                break;
++            case ABS_MT_TRACKING_ID:
++                *outValue = 0;
++                break;
++            case ABS_MT_PRESSURE:
++                *outValue = 0;
++                break;
++            case ABS_X:
++                *outValue = 0;
++                break;
++            case ABS_Y:
++                *outValue = 0;
++                break;
++            case ABS_Z:
++                *outValue = 0;
++                break;
++            case ABS_RZ:
++                *outValue = 0;
++                break;
++            case ABS_RUDDER:
++                *outValue = 0;
++                break;
++            case ABS_WHEEL:
++                *outValue = 0;
++                break;
++            case ABS_GAS:
++                *outValue = 0;
++                break;
++            case ABS_BRAKE:
++                *outValue = 0;
++                break;
++            case ABS_HAT0X:
++                *outValue = 0;
++                break;
++            case ABS_HAT0Y:
++                *outValue = 0;
++                break;
++            case ABS_MISC:
++                *outValue = 0;
++                break;
++            case 0x29:
++                *outValue = 0;
++                break;
++            case 0x2a:
++                *outValue = 0;
++                break;
++            case 0x2b:
++                *outValue = 0;
++                break;
++            case 0x2c:
++                *outValue = 0;
++                break;
++            case 0x2d:
++                *outValue = 0;
++                break;
++            case 0x2e:
++                *outValue = 0;
++                break;
++            case 0x3e:
++                *outValue = 0;
++                break;
++            case 0x3f:
++                *outValue = 0;
++                break;
++            default:
++                ALOGW("Unhandled reading absolute controller %d for device %s fd %d, errno=%d",
++                      axis, device->identifier.name.c_str(), device->fd, errno);
++                return -errno;
++                break;
++        }
++        return OK;
++    }
++    return -1;
++}
++
++status_t EventHub::getVirtualAbsoluteAxisInfoLocked(int axis,
++                                                   RawAbsoluteAxisInfo* outAxisInfo) const {
++    ALOGV("%s: axis=%d", __func__, axis);
++    outAxisInfo->clear();
++
++    switch (axis) {
++        case ABS_MT_SLOT:
++            outAxisInfo->valid = true;
++            outAxisInfo->maxValue = 9;
++            break;
++        case ABS_MT_TOUCH_MAJOR:
++            outAxisInfo->valid = true;
++            outAxisInfo->maxValue = 255;
++            break;
++        case ABS_MT_TOUCH_MINOR:
++            break;
++        case ABS_MT_WIDTH_MAJOR:
++            outAxisInfo->valid = true;
++            outAxisInfo->maxValue = 255;
++            break;
++        case ABS_MT_WIDTH_MINOR:
++            break;
++        case ABS_MT_ORIENTATION:
++            break;
++        case ABS_MT_POSITION_X:
++            outAxisInfo->valid = true;
++            outAxisInfo->maxValue = 32767;
++            break;
++        case ABS_MT_POSITION_Y:
++            outAxisInfo->valid = true;
++            outAxisInfo->maxValue = 32767;
++            break;
++        case ABS_MT_TOOL_TYPE:
++            break;
++        case ABS_MT_BLOB_ID:
++            break;
++        case ABS_MT_TRACKING_ID:
++            outAxisInfo->valid = true;
++            outAxisInfo->maxValue = 65535;
++            break;
++        case ABS_MT_PRESSURE:
++            outAxisInfo->valid = true;
++            outAxisInfo->maxValue = 255;
++            break;
++        case ABS_MT_DISTANCE:
++            break;
++        case ABS_MT_TOOL_X:
++            break;
++        case ABS_MT_TOOL_Y:
++            break;
++        case ABS_X:
++            ALOGV("%s: axis=%d ABS_X", __func__, axis);
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = -127;
++            outAxisInfo->maxValue = 127;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case ABS_Y:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = -127;
++            outAxisInfo->maxValue = 127;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case ABS_Z:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = -127;
++            outAxisInfo->maxValue = 127;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case ABS_RZ:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = -127;
++            outAxisInfo->maxValue = 127;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case ABS_RUDDER:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = -127;
++            outAxisInfo->maxValue = 127;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case ABS_WHEEL:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = -127;
++            outAxisInfo->maxValue = 127;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case ABS_GAS:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = 0;
++            outAxisInfo->maxValue = 255;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case ABS_BRAKE:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = 0;
++            outAxisInfo->maxValue = 255;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case ABS_HAT0X:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = -1;
++            outAxisInfo->maxValue = 1;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 0;
++            outAxisInfo->resolution = 0;
++            break;
++        case ABS_HAT0Y:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = -1;
++            outAxisInfo->maxValue = 1;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 0;
++            outAxisInfo->resolution = 0;
++            break;
++        case ABS_MISC:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = -127;
++            outAxisInfo->maxValue = 127;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case 0x29:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = -127;
++            outAxisInfo->maxValue = 127;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case 0x2a:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = -127;
++            outAxisInfo->maxValue = 127;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case 0x2b:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = -127;
++            outAxisInfo->maxValue = 127;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case 0x2c:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = 0;
++            outAxisInfo->maxValue = 255;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case 0x2d:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = 0;
++            outAxisInfo->maxValue = 255;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case 0x2e:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = 0;
++            outAxisInfo->maxValue = 255;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case 0x3e:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = 0;
++            outAxisInfo->maxValue = 255;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        case 0x3f:
++            outAxisInfo->valid = true;
++            outAxisInfo->minValue = 0;
++            outAxisInfo->maxValue = 255;
++            outAxisInfo->fuzz = 0;
++            outAxisInfo->flat = 15;
++            outAxisInfo->resolution = 0;
++            break;
++        default:
++            ALOGE("unhandled %s:axis=%d", __func__, axis);
++            break;
++    }
++
++    return OK;
++}
++
++void EventHub::populateVirtualInputDeviceAbsoluteAxisInfo(Device& device) {
++    for (int axis = 0; axis <= ABS_MAX; axis++) {
++        if (!device.absBitmask.test(axis)) {
++            continue;
++        }
++        RawAbsoluteAxisInfo& outAxisInfo = device.rawAbsoluteAxisInfoCache[axis];
++        getVirtualAbsoluteAxisInfoLocked(axis, &outAxisInfo);
++    }
++}
++
++int EventHub::openVirturalInputDeviceLocked(const char* devicePath, const char* deviceName) {
++    ALOGD("Opening virtual device: %s name: %s", devicePath, deviceName);
++
++    if (mkfifo(devicePath, S_IFIFO | 0666) < 0 && errno != EEXIST) {
++        ALOGE("Failed to create input pipe %s", devicePath);
++        return -1;
++    }
++
++    int fd = open(devicePath, O_RDWR | O_CLOEXEC | O_NONBLOCK);
++    if (fd < 0) {
++        ALOGE("could not open %s, %s\n", devicePath, strerror(errno));
++        return -1;
++    }
++
++    struct stat st;
++    __mode_t mod = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
++    if (fstat(fd, &st) == 0) {
++        mod |= st.st_mode;
++    }
++    chmod(devicePath, mod);
++
++    int driverVersion = 0x00010000;
++    InputDeviceIdentifier identifier;
++
++    // Get device identifier.
++    identifier.name = deviceName;
++    identifier.bus = BUS_USB;
++    identifier.product = PRODUCT_VIRTUAL_INPUT;
++    identifier.vendor = 0x8086;
++    identifier.version = 1;
++    identifier.location = devicePath;
++    identifier.uniqueId = "virtual-input";
++    assignDescriptorLocked(identifier);
++
++    // Allocate device.  (The device object takes ownership of the fd at this point.)
++    int32_t deviceId = mNextDeviceId++;
++    std::unique_ptr<Device> device =
++            std::make_unique<Device>(fd, deviceId, devicePath, identifier, nullptr);
++
++    ALOGV("add device %d: %s\n", deviceId, devicePath);
++    ALOGV("  bus:        %04x\n"
++          "  vendor      %04x\n"
++          "  product     %04x\n"
++          "  version     %04x\n",
++          identifier.bus, identifier.vendor, identifier.product, identifier.version);
++    ALOGV("  name:       \"%s\"\n", identifier.name.c_str());
++    ALOGV("  location:   \"%s\"\n", identifier.location.c_str());
++    ALOGV("  unique id:  \"%s\"\n", identifier.uniqueId.c_str());
++    ALOGV("  descriptor: \"%s\"\n", identifier.descriptor.c_str());
++    ALOGV("  driver:     v%d.%d.%d\n", driverVersion >> 16, (driverVersion >> 8) & 0xff,
++          driverVersion & 0xff);
++
++    // Load the configuration file for the device.
++    device->loadConfigurationLocked();
++
++    // Figure out the kinds of events the device reports.
++    BitArray<KEY_MAX>::Buffer keyBitBuffer{};
++    BitArray<ABS_MAX>::Buffer absBitBuffer{};
++    BitArray<INPUT_PROP_MAX>::Buffer propBitBuffer{};
++
++    // Lite-On Technology Corp. HP Basic USB Keyboard
++    const uint8_t keyBitmaskKeyboard[] = {0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
++                                      0xFF, 0xFF, 0xEF, 0xFF, 0xDF, 0xFF, 0xBF, 0xFE,
++                                      0xFF, 0x57, 0x40, 0xC1, 0x7A, 0x20, 0x9F, 0xFF,
++                                      0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
++    memcpy(keyBitBuffer.data(), keyBitmaskKeyboard, sizeof(keyBitmaskKeyboard));
++
++#define set_key_bit(bit) (keyBitBuffer.data()[(bit) / 32] |= (1 << ((bit) % 32)))
++#define set_abs_bit(bit) (absBitBuffer.data()[(bit) / 32] |= (1 << ((bit) % 32)))
++#define set_prop_bit(bit) (propBitBuffer.data()[(bit) / 32] |= (1 << ((bit) % 32)))
++
++    // type-B MT touch device
++    set_abs_bit(ABS_MT_SLOT);
++    set_abs_bit(ABS_MT_TRACKING_ID);
++    set_abs_bit(ABS_MT_PRESSURE);
++    set_abs_bit(ABS_MT_TOUCH_MAJOR);
++    set_abs_bit(ABS_MT_WIDTH_MAJOR);
++    set_abs_bit(ABS_MT_POSITION_X);
++    set_abs_bit(ABS_MT_POSITION_Y);
++    set_prop_bit(INPUT_PROP_DIRECT);
++    set_key_bit(BTN_TOUCH);
++
++    device->keyBitmask.loadFromBuffer(keyBitBuffer);
++    device->absBitmask.loadFromBuffer(absBitBuffer);
++    device->propBitmask.loadFromBuffer(propBitBuffer);
++
++    // Virtual input supports MT-touch and keyboard input
++    device->classes |= InputDeviceClass::KEYBOARD;
++    device->classes |= (InputDeviceClass::TOUCH | InputDeviceClass::TOUCH_MT);
++
++    // Load the key map.
++    // We need to do this for joysticks too because the key layout may specify axes, and for
++    // sensor as well because the key layout may specify the axes to sensor data mapping.
++    status_t keyMapStatus = NAME_NOT_FOUND;
++    if (device->classes.any(InputDeviceClass::KEYBOARD | InputDeviceClass::JOYSTICK |
++                            InputDeviceClass::SENSOR)) {
++        // Load the keymap for the device.
++        keyMapStatus = device->loadKeyMapLocked();
++    }
++
++    // Configure the keyboard, gamepad or virtual keyboard.
++    if (device->classes.test(InputDeviceClass::KEYBOARD)) {
++        // Register the keyboard as a built-in keyboard if it is eligible.
++        if (!keyMapStatus && mBuiltInKeyboardId == NO_BUILT_IN_KEYBOARD &&
++            isEligibleBuiltInKeyboard(device->identifier, device->configuration.get(),
++                                      &device->keyMap)) {
++            mBuiltInKeyboardId = device->id;
++        }
++
++        // 'Q' key support = cheap test of whether this is an alpha-capable kbd
++        if (device->hasKeycodeLocked(AKEYCODE_Q)) {
++            device->classes |= InputDeviceClass::ALPHAKEY;
++        }
++
++        // See if this device has a D-pad.
++        if (std::all_of(DPAD_REQUIRED_KEYCODES.begin(), DPAD_REQUIRED_KEYCODES.end(),
++                        [&](int32_t keycode) { return device->hasKeycodeLocked(keycode); })) {
++            device->classes |= InputDeviceClass::DPAD;
++        }
++
++        // See if this device has a gamepad.
++        if (std::any_of(GAMEPAD_KEYCODES.begin(), GAMEPAD_KEYCODES.end(),
++                        [&](int32_t keycode) { return device->hasKeycodeLocked(keycode); })) {
++            device->classes |= InputDeviceClass::GAMEPAD;
++        }
++
++        // See if this device has any stylus buttons that we would want to fuse with touch data.
++        if (!device->classes.any(InputDeviceClass::TOUCH | InputDeviceClass::TOUCH_MT) &&
++            !device->classes.any(InputDeviceClass::ALPHAKEY) &&
++            std::any_of(STYLUS_BUTTON_KEYCODES.begin(), STYLUS_BUTTON_KEYCODES.end(),
++                        [&](int32_t keycode) { return device->hasKeycodeLocked(keycode); })) {
++            device->classes |= InputDeviceClass::EXTERNAL_STYLUS;
++        }
++    }
++
++    if (registerDeviceForEpollLocked(*device) != OK) {
++        return -1;
++    }
++
++    // read absolute axis info for all available axes for the device
++    populateVirtualInputDeviceAbsoluteAxisInfo(*device);
++
++    ALOGI("New device: id=%d, fd=%d, path='%s', name='%s', classes=%s, "
++          "configuration='%s', keyLayout='%s', keyCharacterMap='%s', builtinKeyboard=%s, ",
++          deviceId, fd, devicePath, device->identifier.name.c_str(),
++          device->classes.string().c_str(), device->configurationFile.c_str(),
++          device->keyMap.keyLayoutFile.c_str(), device->keyMap.keyCharacterMapFile.c_str(),
++          toString(mBuiltInKeyboardId == deviceId));
++
++    addDeviceLocked(std::move(device));
++
++    return 0;
++}
++
+ } // namespace android
+diff --git a/services/inputflinger/reader/include/EventHub.h b/services/inputflinger/reader/include/EventHub.h
+index 024187f5b5..8cbc863a40 100644
+--- a/services/inputflinger/reader/include/EventHub.h
++++ b/services/inputflinger/reader/include/EventHub.h
+@@ -45,6 +45,8 @@
+ #include "TouchVideoDevice.h"
+ #include "VibrationElement.h"
+ 
++#define PRODUCT_VIRTUAL_INPUT 0x1111
++
+ struct inotify_event;
+ 
+ namespace android {
+@@ -660,6 +662,13 @@ private:
+      */
+     void openDeviceLocked(const std::string& devicePath) REQUIRES(mLock);
+     void openVideoDeviceLocked(const std::string& devicePath) REQUIRES(mLock);
++
++    /* Virtual input*/
++    status_t getVirtualAbsoluteAxisValueLocked(Device* device, int32_t axis, int32_t* outValue) const;
++    status_t getVirtualAbsoluteAxisInfoLocked(int axis, RawAbsoluteAxisInfo* outAxisInfo) const;
++    void populateVirtualInputDeviceAbsoluteAxisInfo(Device& device);
++    int openVirturalInputDeviceLocked(const char* devicePath, const char* deviceName) REQUIRES(mLock);
++
+     /**
+      * Try to associate a video device with an input device. If the association succeeds,
+      * the videoDevice is moved into the input device. 'videoDevice' will become null if this
+-- 
+2.45.1
+
