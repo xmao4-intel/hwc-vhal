@@ -43,8 +43,8 @@ class DirectInputReceiver : public IInputReceiver {
   void SendWait(uint32_t ms);
 
  private:
-  const char* kEnvWorkDir = "AIC_WORK_DIR";
-  const char* kDevName = "/ipc/input-pipe";
+  //const char* kEnvWorkDir = "AIC_WORK_DIR";
+  //const char* kDevName = "/ipc/input-pipe";
   static const uint32_t kMaxSlot = 9;
   static const uint32_t kMaxMajor = 15;
   static const uint32_t kMaxPositionX = 720;

@@ -1,20 +1,24 @@
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 
-#define CLOGV ALOGV
-#define CLOGD ALOGD
-#define CLOGE ALOGE
 #include <cutils/log.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <linux/uinput.h>
+#include <arpa/inet.h>
 #include "DirectInput.h"
 
 DirectInputReceiver::DirectInputReceiver(int id) {
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   CreateTouchDevice(id);
 }
 
 DirectInputReceiver::~DirectInputReceiver() {
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   if (mFd >= 0) {
     close(mFd);
@@ -23,25 +27,45 @@ DirectInputReceiver::~DirectInputReceiver() {
 
 bool DirectInputReceiver::CreateTouchDevice(int id) {
   (void)id;
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
-  // Todo: use socket to support multiple input for each display
-  char path[256];
-  const char* dir = getenv(kEnvWorkDir);
+#define USE_INPUT_SERVER 1
+#define INPUT_SERVER_PORT  9900
+#define INPUT_SERVER_IP  "127.0.0.1"
 
-  if (access(kDevName, F_OK) == 0) {
-    snprintf(path, 256, "%s", kDevName);
-  } else if (dir && (strlen(dir) + strlen(kDevName) < 256)) {
-    snprintf(path, 256, "%s/%s", dir, kDevName);
-  } else {
-    snprintf(path, 256, "%s", "/data/local/tmp/input-pipe");
-  }
+#ifdef USE_INPUT_SERVER
+    struct sockaddr_in addr;
 
+    mFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (mFd < 0) {
+        ALOGE("Failed to create socket");
+        return false;
+    }
+
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(INPUT_SERVER_PORT);
+    if (inet_pton(AF_INET, INPUT_SERVER_IP, &addr.sin_addr) <= 0) {
+        ALOGE("Not supported ip and port");
+        close(mFd);
+        mFd = -1;
+        return false;
+    }
+
+    if (connect(mFd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        ALOGE("Failed to connect to server");
+        close(mFd);
+        mFd = -1;
+        return false;
+    }
+    return true;
+#else
+  const char* path = "/data/virtual-input";
   mFd = open(path, O_RDWR | O_NONBLOCK, 0);
   if (mFd < 0) {
-    CLOGE("Failed to open pipe for read:%s", strerror(errno));
+    ALOGE("Failed to open pipe for read:%s", strerror(errno));
     return false;
   }
+#endif
   return true;
 }
 
@@ -66,7 +90,9 @@ bool DirectInputReceiver::SendEvent(uint16_t type,
   ev.value = value;
 
   if (write(mFd, &ev, sizeof(struct input_event)) < 0) {
-    perror("Failed to send event\n");
+    ALOGE("Failed to send event:%d:%s", mFd, strerror(errno));
+    close(mFd);
+    mFd = -1;
     return false;
   }
   return true;
@@ -76,7 +102,7 @@ bool DirectInputReceiver::SendDown(int32_t slot,
                                    int32_t x,
                                    int32_t y,
                                    int32_t pressure) {
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   if ((uint32_t)slot >= kMaxSlot) {
     return false;
@@ -106,7 +132,7 @@ bool DirectInputReceiver::SendDown(int32_t slot,
 bool DirectInputReceiver::SendUp(int32_t slot, int32_t x, int32_t y) {
   (void)x;
   (void)y;
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   if (mEnabledSlots == 0 || (uint32_t)slot >= kMaxSlot ||
       !mContacts[slot].enabled) {
@@ -128,7 +154,7 @@ bool DirectInputReceiver::SendMove(int32_t slot,
                                    int32_t x,
                                    int32_t y,
                                    int32_t pressure) {
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   if ((uint32_t)slot >= kMaxSlot || !mContacts[slot].enabled) {
     return false;
@@ -145,14 +171,14 @@ bool DirectInputReceiver::SendMove(int32_t slot,
 }
 
 bool DirectInputReceiver::SendCommit() {
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   SendEvent(EV_SYN, SYN_REPORT, 0);
   return true;
 }
 
 bool DirectInputReceiver::SendReset() {
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   bool report = false;
   for (uint32_t slot = 0; slot < kMaxSlot; slot++) {
@@ -168,13 +194,13 @@ bool DirectInputReceiver::SendReset() {
 }
 
 void DirectInputReceiver::SendWait(uint32_t ms) {
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   usleep(ms * 1000);
 }
 
 bool DirectInputReceiver::ProcessOneCommand(const std::string& cmd) {
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   char type = 0;
   int32_t slot = 0;
@@ -183,7 +209,7 @@ bool DirectInputReceiver::ProcessOneCommand(const std::string& cmd) {
   int32_t pressure = 0;
   int32_t ms = 0;
 
-  // CLOGD("%s:%d %s", __func__, __LINE__, cmd.c_str());
+  //ALOGV("%s:%d %s", __func__, __LINE__, cmd.c_str());
 
   switch (cmd[0]) {
     case 'c':  // commit
@@ -215,7 +241,7 @@ bool DirectInputReceiver::ProcessOneCommand(const std::string& cmd) {
 }
 
 int DirectInputReceiver::getTouchInfo(TouchInfo* info) {
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   if (!info) {
     return -EINVAL;
@@ -231,12 +257,12 @@ int DirectInputReceiver::getTouchInfo(TouchInfo* info) {
   return 0;
 }
 int DirectInputReceiver::onInputMessage(const std::string& msg) {
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   size_t begin = 0;
   size_t end = 0;
 
-  // CLOGD("%s:%d %s", __func__, __LINE__, msg.c_str());
+  // ALOGD("%s:%d %s", __func__, __LINE__, msg.c_str());
 
   while (true) {
     end = msg.find("\n", begin);
@@ -253,7 +279,7 @@ int DirectInputReceiver::onInputMessage(const std::string& msg) {
 }
 
 int DirectInputReceiver::onKeyCode(uint16_t scanCode, uint32_t mask) {
-  CLOGV("%s", __func__);
+  ALOGV("%s:scancode=%x mask=%x", __func__, scanCode, mask);
 
   if (mask & KEY_STATE_MASK::Shift) {
     SendEvent(EV_KEY, KEY_LEFTSHIFT, 1);
@@ -290,14 +316,14 @@ int DirectInputReceiver::onKeyCode(uint16_t scanCode, uint32_t mask) {
 
 int DirectInputReceiver::onKeyChar(char ch) {
   (void)ch;
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   return 0;
 }
 
 int DirectInputReceiver::onText(const char* msg) {
   (void)msg;
-  CLOGV("%s", __func__);
+  ALOGV("%s", __func__);
 
   return 0;
 }

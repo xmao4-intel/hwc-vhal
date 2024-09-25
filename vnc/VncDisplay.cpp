@@ -1,4 +1,4 @@
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 #include <cutils/log.h>
 #include <cutils/properties.h>
 
@@ -120,8 +120,8 @@ void VncDisplay::handleMouse(ClientContext* ctx, int mask, int x, int y) {
     char msg[32];
 
     // remap x, y to touch space
-    x = x * 720 / mWidth;
-    y = y * 1280 / mHeight;
+    x = x * 32767 / mWidth;
+    y = y * 32767 / mHeight;
 
     if (mask && ctx->button_mask == 0) {  // down
       snprintf(msg, 32, "d 0 %d %d 50 \nc\n", x, y);
@@ -136,7 +136,7 @@ void VncDisplay::handleMouse(ClientContext* ctx, int mask, int x, int y) {
       // do nothing
       snprintf(msg, 32, "hover %d %d\n", x, y);
     }
-    // ALOGD("%s:%s", __func__, msg);
+    //ALOGD("%s:%s", __func__, msg);
   }
   ctx->button_mask = mask;
 }
@@ -221,7 +221,6 @@ int VncDisplay::postFb(buffer_handle_t fb) {
     }
     rfbMarkRectAsModified(mScreen, 0, 0, mWidth, mHeight);
   }
-ALOGD("%s:%d", __FILE__, __LINE__);   
   return 0;
 }
 
