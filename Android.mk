@@ -27,7 +27,7 @@ TARGET_USES_HWC2 := true
 
 # HWC VNC is only used for internal test, please don't enable it for external release
 ENABLE_HWC_VNC := true
-ENABLE_HWC_VNC_TEST := true
+ENABLE_HWC_VNC_TEST := false
 #ENABLE_LAYER_DUMP := true
 #VIDEO_STREAMING_OPT := true
 
@@ -156,9 +156,11 @@ LOCAL_C_INCLUDES += \
         external/libvncserver \
         external/zlib \
         $(LOCAL_PATH)/common \
+        $(LOCAL_PATH)/renderer \
         $(LOCAL_PATH)/vnc \
 
 LOCAL_SHARED_LIBRARIES := \
+	libui \
         liblog \
         libcutils \
         libutils \
