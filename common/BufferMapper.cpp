@@ -170,7 +170,7 @@ void BufferMapper::gralloc4ToGralloc1(buffer_handle_t in, struct cros_gralloc_ha
   cros_gralloc4_handle_t g4h = (cros_gralloc4_handle_t)in;
 
   out->base.version = g4h->base.version;
-  out->base.numFds = g4h->num_planes;
+  out->base.numFds = g4h->base.numFds;
   out->base.numInts = (sizeof(cros_gralloc_handle) - sizeof(native_handle_t)) / sizeof(int) - out->base.numFds;
 
 #define COPY_ELEMENT(e) out->e = g4h->e

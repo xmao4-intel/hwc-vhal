@@ -1,4 +1,4 @@
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -159,11 +159,13 @@ int RemoteDisplay::sendDisplayPortReq() {
 int RemoteDisplay::createBuffer(buffer_handle_t b) {
   ALOGV("RemoteDisplay(%d)::%s", mSocketFd, __func__);
 
-  BufferMapper& mapper = BufferMapper::getMapper();
+  //BufferMapper& mapper = BufferMapper::getMapper();
 
   buffer_info_event_t ev;
   int64_t bufferId = (int64_t)b;
   buffer_handle_t buffer = b;
+  
+  #if 0
   bool isGralloc1Buffer = mapper.isGralloc1(b);
   cros_gralloc_handle* gh = nullptr;
 
@@ -174,6 +176,7 @@ int RemoteDisplay::createBuffer(buffer_handle_t b) {
     mapper.gralloc4ToGralloc1(b, gh);
     buffer = (buffer_handle_t)gh;
   }
+#endif
 
   memset(&ev, 0, sizeof(ev));
   ev.event.type = DD_EVENT_CREATE_BUFFER;
@@ -204,12 +207,13 @@ int RemoteDisplay::createBuffer(buffer_handle_t b) {
       goto fail;
     }
   }
-  if (gh)
-    free(gh);
+
+  //if (gh)
+  //  free(gh);
   return 0;
 fail:
-  if (gh)
-    free(gh);
+  //if (gh)
+  //  free(gh);
   return -1;
 }
 
