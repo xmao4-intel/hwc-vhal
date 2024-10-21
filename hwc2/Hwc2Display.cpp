@@ -583,6 +583,7 @@ Error Hwc2Display::present(int32_t* retireFence) {
                 __FUNCTION__, acquireFence, errno, strerror(errno));
         }
       }
+      updateCtrl = false;
       mRemoteDisplay->displayBuffer(target, updateCtrl ? &mDisplayControl : nullptr);
     }
   }

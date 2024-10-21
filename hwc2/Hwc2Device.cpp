@@ -15,6 +15,8 @@
 #include "Hwc2Display.h"
 #include "RemoteDisplayMgr.h"
 
+#define SUPPORT_BUFFER_SHARE 1
+
 using namespace HWC2;
 
 std::atomic<hwc2_display_t> Hwc2Device::sNextId(1);
