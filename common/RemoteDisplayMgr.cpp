@@ -1,4 +1,4 @@
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 
 #include <cutils/log.h>
 
@@ -199,39 +199,51 @@ void RemoteDisplayMgr::socketThreadProc() {
     return;
   }
 
-  char value[PROPERTY_VALUE_MAX];
-  property_get("ro.boot.container.id", value, "0");
-  char kServerSockId[50];
-  char* p_env = NULL;
-  p_env = getenv("K8S_ENV");
-  if ((p_env != NULL) && strcmp(p_env, "true") == 0)
-    sprintf(kServerSockId,"%s","/conn/hwc-sock");
-  else
-    sprintf(kServerSockId,"%s%s","/data/local/tmp//hwc-sock",value);
+  //char value[PROPERTY_VALUE_MAX];
+  //property_get("ro.boot.container.id", value, "0");
+  //char kServerSockId[50];
+  //char* p_env = NULL;
+  //p_env = getenv("K8S_ENV");
+  //if ((p_env != NULL) && strcmp(p_env, "true") == 0)
+  //  sprintf(kServerSockId,"%s","/conn/hwc-sock");
+  //else
+  //  sprintf(kServerSockId,"%s%s","hwc-sock",value);
 
   setNonblocking(mServerFd);
   addEpollFd(mServerFd);
 
+bool abstract = true;
+const char* kServerSockId = "hwc-sock";
+
   struct sockaddr_un addr;
   memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_UNIX;
-  strncpy(&addr.sun_path[0], kServerSockId, strlen(kServerSockId));
 
-  unlink(kServerSockId);
+  if (abstract) {
+    strncpy(&addr.sun_path[1], kServerSockId, strlen(kServerSockId));
+    addr.sun_path[0] = 0;
+  } else {
+    strncpy(&addr.sun_path[0], kServerSockId, strlen(kServerSockId));
+
+    unlink(kServerSockId);
+  }
+
   if (bind(mServerFd, (struct sockaddr*)&addr,
-           sizeof(sa_family_t) + strlen(kServerSockId) + 1) < 0) {
+          sizeof(sa_family_t) + strlen(kServerSockId) + 1) < 0) {
     ALOGE("Failed to bind server socket address");
     return;
   }
 
-  // TODO: use group access only for security
-  struct stat st;
-  __mode_t mod = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
-  if (fstat(mServerFd, &st) == 0) {
-    mod |= st.st_mode;
-  }
-  if (chmod(kServerSockId, mod)) {
-    return;
+  if (!abstract) {
+    // TODO: use group access only for security
+    struct stat st;
+    __mode_t mod = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+    if (fstat(mServerFd, &st) == 0) {
+      mod |= st.st_mode;
+    }
+    if (chmod(kServerSockId, mod)) {
+      return;
+    }
   }
 
   if (listen(mServerFd, 1) < 0) {
