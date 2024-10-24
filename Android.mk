@@ -180,3 +180,29 @@ include $(BUILD_EXECUTABLE)
 endif
 
 endif
+
+
+include $(CLEAR_VARS)
+
+LOCAL_CFLAGS := -g -DLOG_TAG=\"libhwcvhal\" -g -Wno-missing-field-initializers -Wno-unused-parameter
+LOCAL_LDFLAGS :=  -g
+
+LOCAL_SRC_FILES := \
+         client/hwc_vhal_client.cpp \
+
+LOCAL_C_INCLUDES += \
+         $(LOCAL_PATH)/common \
+
+LOCAL_EXPORT_C_INCLUDE_DIRS := \
+        $(LOCAL_PATH)/client \
+        $(LOCAL_PATH)/common \
+
+LOCAL_SHARED_LIBRARIES := \
+        liblog \
+        libcutils \
+        libui \
+
+LOCAL_PROPRIETARY_MODULE := true
+LOCAL_MODULE := libhwcvhal
+LOCAL_MODULE_TAGS := optional
+include $(BUILD_SHARED_LIBRARY)
